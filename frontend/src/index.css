@@ -1,0 +1,112 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource/amiri-quran/400.css";
+@import "@fontsource/scheherazade-new/400.css";
+@import "@fontsource/scheherazade-new/700.css";
+@import "@fontsource/amiri/400.css";
+@import "@fontsource/amiri/700.css";
+@import "@fontsource/noto-naskh-arabic/400.css";
+@import "@fontsource/noto-naskh-arabic/700.css";
+@import "@fontsource/ibm-plex-sans-arabic/400.css";
+@import "@fontsource/ibm-plex-sans-arabic/500.css";
+@import "@fontsource/ibm-plex-sans-arabic/600.css";
+@import "@fontsource/ibm-plex-sans-arabic/700.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
+    --font-quran: 'Amiri Quran', 'Scheherazade New', 'Amiri', serif;
+    --color-navy-950: #071827;
+    --color-navy-900: #0B2233;
+    --color-navy-800: #102C3F;
+    --color-navy-700: #173B54;
+    --color-line: #244256;
+    --color-gold: #E7B85C;
+    --color-gold-hover: #D1A348;
+    --color-action: #2563EB;
+    --color-action-hover: #1D4ED8;
+    --color-ink: #F8FAFC;
+    --color-ink-soft: #B8C5D1;
+    --color-ink-muted: #8DA3B5;
+    --color-success: #10B981;
+    --color-warning: #F59E0B;
+    --color-danger: #EF4444;
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Dark-only design tokens (the light theme is intentionally not shipped). */
+:root, .dark {
+    --background: #071827;
+    --foreground: #F8FAFC;
+    --card: #102C3F;
+    --card-foreground: #F8FAFC;
+    --popover: #102C3F;
+    --popover-foreground: #F8FAFC;
+    --primary: #2563EB;
+    --primary-foreground: #FFFFFF;
+    --secondary: #0B2233;
+    --secondary-foreground: #F8FAFC;
+    --muted: #0B2233;
+    --muted-foreground: #B8C5D1;
+    --accent: #173B54;
+    --accent-foreground: #F8FAFC;
+    --destructive: #EF4444;
+    --border: #244256;
+    --input: #244256;
+    --ring: #2563EB;
+    --radius: 0.75rem;
+    color-scheme: dark;
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground antialiased; }
+  html { @apply font-sans; }
+  :focus-visible { outline: 2px solid #E7B85C; outline-offset: 2px; }
+  input[type="range"] { accent-color: #2563EB; }
+}
+
+.font-quran { font-family: var(--font-quran); }
+.quran-text { font-family: var(--font-quran); line-height: 2.3; word-spacing: 0.04em; }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+.geo-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cg fill='none' stroke='%23E7B85C' stroke-opacity='0.07' stroke-width='1'%3E%3Crect x='18' y='18' width='28' height='28'/%3E%3Crect x='18' y='18' width='28' height='28' transform='rotate(45 32 32)'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+@keyframes fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.animate-fade-up { animation: fade-up 0.35s ease-out both; }
+@keyframes soft-pulse { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+.animate-soft-pulse { animation: soft-pulse 1.6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+[data-sonner-toaster] { font-family: var(--font-sans) !important; }
