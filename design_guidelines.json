@@ -1,0 +1,262 @@
+{
+  "project_name": "Athar Kareem (أثر كريم)",
+  "tagline": "آياتٌ تُتلى، وأثرٌ يبقى",
+  "direction": "rtl",
+  "theme_mode": "dark_only",
+  "design_philosophy": {
+    "archetype": "LUXURY & SPIRITUAL REVERENCE (الأصالة والفخامة القرآنية)",
+    "principles": [
+      "RTL first: every flow, layout, stepper, navigation, and canvas mirror is crafted for authentic Arabic reading order.",
+      "Spiritual Depth: deep obsidian-sapphire background (#071827) paired with refined gold accents (#E7B85C) and clear action blues (#2563EB).",
+      "Quranic Typography Honor: dedicated Amiri Quran & Scheherazade New for sacred text with proper diacritics and ayah separators (۝ / ﴾ ﴿ / octagons), and crisp IBM Plex Sans Arabic for UI controls.",
+      "Fluid Studio Power: 6-step video generator with real-time responsive HTML5 Canvas preview, word highlighting, waveform visualizer, audio synthesis/playback sync, and export presets (9:16 reels/shorts, 16:9 youtube, 1:1 feed, 4:5 instagram)."
+    ]
+  },
+  "colors": {
+    "palette": {
+      "primary_bg": "#071827",
+      "secondary_bg": "#0B2233",
+      "elevated_surface": "#102C3F",
+      "elevated_surface_hover": "#173B54",
+      "gold_accent": "#E7B85C",
+      "gold_accent_hover": "#D1A348",
+      "gold_muted": "rgba(231, 184, 92, 0.15)",
+      "primary_action_blue": "#2563EB",
+      "primary_action_blue_hover": "#1D4ED8",
+      "main_text": "#F8FAFC",
+      "secondary_text": "#B8C5D1",
+      "muted_text": "#8DA3B5",
+      "borders": "#244256",
+      "border_accent": "#E7B85C40",
+      "success": "#10B981",
+      "warning": "#F59E0B",
+      "error": "#EF4444"
+    },
+    "surfaces": [
+      {
+        "name": "page",
+        "kind": "solid",
+        "bg": "#071827",
+        "on_bg": "#F8FAFC",
+        "on_bg_muted": "#B8C5D1",
+        "roles": {
+          "link": "#E7B85C",
+          "action": "#2563EB",
+          "error": "#EF4444",
+          "success": "#10B981",
+          "warning": "#F59E0B"
+        }
+      },
+      {
+        "name": "panel",
+        "kind": "solid",
+        "bg": "#0B2233",
+        "on_bg": "#F8FAFC",
+        "on_bg_muted": "#B8C5D1",
+        "roles": {
+          "gold_accent": "#E7B85C",
+          "action_blue": "#2563EB"
+        }
+      },
+      {
+        "name": "card_elevated",
+        "kind": "solid",
+        "bg": "#102C3F",
+        "on_bg": "#F8FAFC",
+        "on_bg_muted": "#B8C5D1",
+        "roles": {
+          "border": "#244256",
+          "gold_badge": "#E7B85C"
+        }
+      },
+      {
+        "name": "glass_header",
+        "kind": "glass",
+        "contrast_against": "#071827",
+        "guarantee": "backdrop-blur-xl bg-[#071827]/85 border-b border-[#244256]",
+        "on_bg": "#F8FAFC",
+        "on_bg_muted": "#B8C5D1"
+      },
+      {
+        "name": "hero_sunset",
+        "kind": "image",
+        "contrast_against": "#0A121E",
+        "guarantee": "scrim: linear-gradient(180deg, rgba(7,24,39,0.4) 0%, rgba(7,24,39,0.92) 100%)",
+        "on_bg": "#F8FAFC",
+        "on_bg_muted": "#E2E8F0"
+      },
+      {
+        "name": "bottom_audio_bar",
+        "kind": "solid",
+        "bg": "#0B2233",
+        "on_bg": "#F8FAFC",
+        "on_bg_muted": "#B8C5D1",
+        "roles": {
+          "slider_active": "#2563EB",
+          "gold_reciter": "#E7B85C"
+        }
+      }
+    ],
+    "accent": "#E7B85C",
+    "on_accent": "#071827"
+  },
+  "typography": {
+    "font_family_ui": "'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif",
+    "font_family_quran": "'Amiri Quran', 'Scheherazade New', 'Amiri', serif",
+    "font_family_mono": "'IBM Plex Mono', monospace",
+    "scale_px": {
+      "display": 48,
+      "h1": 36,
+      "h2": 28,
+      "h3": 22,
+      "body": 16,
+      "caption": 14
+    },
+    "arabic_typesetting": {
+      "line_height_quran": "leading-[2.4]",
+      "line_height_ui": "leading-relaxed",
+      "verse_font_size_reader": "text-2xl sm:text-3xl",
+      "verse_font_size_studio": "text-3xl sm:text-4xl",
+      "tagline_font_size": "text-lg sm:text-xl font-medium tracking-normal"
+    }
+  },
+  "entry_surfaces": {
+    "/": "atmospheric hero with mosque sunset and gold crescent branding, followed by two primary high-impact gateway cards: Quran Library & Video Studio",
+    "/quran": "surah grid w/ quick search, juz/quarter tabs, and gold octagon number badges leading to reader",
+    "/quran/read/:surahId": "distraction-free Quran reader with verse selection, tafsir drawer, and sticky bottom audio player",
+    "/discovery": "curated discovery feed: search ayah, topic cards (السكينة، الصبر، الرزق، الوالدين), random verse generator, and favorites tab",
+    "/studio": "6-step studio wizard: Verse Picker -> Reciter & Audio -> Background & Mood -> Typography & Styling -> Canvas Live Preview -> High-res Video Export",
+    "/saved-templates": "grid of preset & user-crafted studio templates with instant one-click apply",
+    "/recent-projects": "gallery of rendered clips, drafts, and exported video cards with quick share/download",
+    "/settings": "reverent settings panel: recitation default, audio quality, translation language, studio watermark toggle, app data management"
+  },
+  "layout_and_navigation": {
+    "mobile_first": true,
+    "bottom_nav": {
+      "items": [
+        { "id": "home", "label": "الرئيسية", "icon": "Home", "route": "/", "test_id": "nav-home-button" },
+        { "id": "quran", "label": "المصحف", "icon": "BookOpen", "route": "/quran", "test_id": "nav-quran-button" },
+        { "id": "studio", "label": "الاستوديو", "icon": "Clapperboard", "route": "/studio", "test_id": "nav-studio-button" },
+        { "id": "discovery", "label": "استكشف", "icon": "Compass", "route": "/discovery", "test_id": "nav-discovery-button" },
+        { "id": "saved", "label": "محفوظاتي", "icon": "Bookmark", "route": "/saved", "test_id": "nav-saved-button" }
+      ],
+      "style": "fixed bottom-0 inset-x-0 h-16 bg-[#071827]/95 backdrop-blur-xl border-t border-[#244256] z-50 flex items-center justify-around px-2 pb-safe"
+    },
+    "desktop_header": {
+      "style": "hidden md:flex sticky top-0 inset-x-0 h-18 bg-[#071827]/90 backdrop-blur-xl border-b border-[#244256] z-40 items-center justify-between px-8"
+    },
+    "grid_conventions": {
+      "home_cards": "grid grid-cols-1 md:grid-cols-2 gap-6 p-4 sm:p-6",
+      "surah_list": "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5",
+      "studio_workspace": "grid grid-cols-1 lg:grid-cols-12 gap-6 items-start",
+      "studio_preview_col": "lg:col-span-7 sticky top-24",
+      "studio_controls_col": "lg:col-span-5 space-y-6"
+    }
+  },
+  "studio_features": {
+    "stepper_steps": [
+      { "step": 1, "key": "verses", "label": "اختيار الآيات", "description": "تحديد السورة وبداية/نهاية الآيات" },
+      { "step": 2, "key": "reciter", "label": "القارئ والصوت", "description": "اختيار الشيخ وتلاوة الآيات" },
+      { "step": 3, "key": "background", "label": "الخلفية والمشهد", "description": "خلفيات إسلامية، طبيعة، فيديو، أو رفع مخصص" },
+      { "step": 4, "key": "typography", "label": "التصميم والخطوط", "description": "الخط القرآني، حجم النص، المؤثرات، التظليل، والترجمة" },
+      { "step": 5, "key": "preview", "label": "المعاينة الحية", "description": "تشغيل حقيقي مع المزامنة والمؤثرات الصوتية" },
+      { "step": 6, "key": "export", "label": "التصدير والمشاركة", "description": "خيارات الجودة والأبعاد وتنزيل الفيديو/MP4" }
+    ],
+    "aspect_ratios": [
+      { "id": "9:16", "label": "قصص وريلز (9:16)", "width": 1080, "height": 1920, "badge": "الأكثر طلباً" },
+      { "id": "16:9", "label": "يوتيوب وأفقي (16:9)", "width": 1920, "height": 1080 },
+      { "id": "1:1", "label": "مربع انستغرام (1:1)", "width": 1080, "height": 1080 },
+      { "id": "4:5", "label": "منشور عمودي (4:5)", "width": 1080, "height": 1350 }
+    ],
+    "canvas_engine": {
+      "renderer": "HTML5 Canvas (2D Context) + Web Audio API visualizer waveform",
+      "word_highlighter": "Live timestamp-based karaoke word highlight or smooth ayah transition",
+      "watermark": {
+        "text": "أثر كريم — Athar Kareem",
+        "customizable": true,
+        "default_enabled": true
+      }
+    }
+  },
+  "image_urls": {
+    "hero_mosque_sunset": {
+      "url": "https://images.unsplash.com/photo-1512632578888-169bbbc64f33?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjV8MHwxfHNlYXJjaHwzfHxtb3NxdWUlMjBzdW5zZXQlMjBhcmNoaXRlY3R1cmV8ZW58MHx8fHwxNzkzMzk3OTY3fDA&ixlib=rb-4.1.0&q=85",
+      "description": "Sheikh Zayed Grand Mosque reflection at sunset (Hero header and Home background banner)"
+    },
+    "studio_bg_suleymaniye": {
+      "url": "https://images.unsplash.com/photo-1567712595315-545da0d341b2?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjV8MHwxfHNlYXJjaHw0fHxtb3NxdWUlMjBzdW5zZXQlMjBhcmNoaXRlY3R1cmV8ZW58MHx8fHwxNzkzMzk3OTY3fDA&ixlib=rb-4.1.0&q=85",
+      "description": "Atmospheric evening Suleymaniye mosque dome silhouette"
+    },
+    "studio_bg_blue_mosque": {
+      "url": "https://images.unsplash.com/photo-1537181534458-45dcee76ae90?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjV8MHwxfHNlYXJjaHwxfHxtb3NxdWUlMjBzdW5zZXQlMjBhcmNoaXRlY3R1cmV8ZW58MHx8fHwxNzkzMzk3OTY3fDA&ixlib=rb-4.1.0&q=85",
+      "description": "Illuminated blue dome mosque under twilight sunset sky"
+    },
+    "islamic_pattern_gold_mesh": {
+      "url": "https://images.unsplash.com/photo-1531164659940-21e9011115f7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzR8MHwxfHNlYXJjaHwzfHxpc2xhbWljJTIwZ2VvbWV0cmljJTIwcGF0dGVybiUyMGRhcmt8ZW58MHx8fHwxNzkzMzk3OTY3fDA&ixlib=rb-4.1.0&q=85",
+      "description": "Intricate wooden and mother-of-pearl arabesque geometric pattern"
+    },
+    "islamic_pattern_screen": {
+      "url": "https://images.unsplash.com/photo-1711465059953-c653d6a447af?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzR8MHwxfHNlYXJjaHw0fHxpc2xhbWljJTIwZ2VvbWV0cmljJTIwcGF0dGVybiUyMGRhcmt8ZW58MHx8fHwxNzkzMzk3OTY3fDA&ixlib=rb-4.1.0&q=85",
+      "description": "Vertical Islamic arabesque latticework screen"
+    },
+    "calligraphy_gold_disk": {
+      "url": "https://images.unsplash.com/photo-1700306692751-1fd5f2b88443?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzOTB8MHwxfHNlYXJjaHw0fHxhcmFiaWMlMjBjYWxsaWdyYXBoeSUyMGFydHxlbnwwfHx8fDE3OTMzOTc5Njd8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Glowing gold circular Islamic calligraphy medallion"
+    },
+    "calligraphy_ink_bismillah": {
+      "url": "https://images.unsplash.com/photo-1601480905449-90fca867ad37?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzOTB8MHwxfHNlYXJjaHwyfHxhcmFiaWMlMjBjYWxsaWdyYXBoeSUyMGFydHxlbnwwfHx8fDE3OTMzOTc5Njd8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Fine art Arabic Thuluth calligraphy piece"
+    }
+  },
+  "component_structure": {
+    "shell": "/app/frontend/src/components/layout/AppShell.tsx",
+    "header": "/app/frontend/src/components/layout/DesktopHeader.tsx",
+    "bottom_nav": "/app/frontend/src/components/layout/MobileBottomNav.tsx",
+    "quran_library": "/app/frontend/src/pages/QuranLibrary.tsx",
+    "quran_reader": "/app/frontend/src/pages/QuranReader.tsx",
+    "audio_player": "/app/frontend/src/components/quran/QuranAudioBar.tsx",
+    "discovery": "/app/frontend/src/pages/Discovery.tsx",
+    "studio_page": "/app/frontend/src/pages/Studio.tsx",
+    "studio_canvas": "/app/frontend/src/components/studio/StudioCanvasPreview.tsx",
+    "studio_controls": "/app/frontend/src/components/studio/StudioControls.tsx",
+    "saved_and_favorites": "/app/frontend/src/pages/SavedHub.tsx",
+    "settings_modal_or_page": "/app/frontend/src/pages/Settings.tsx"
+  },
+  "test_id_conventions": {
+    "splash_screen": "splash-screen-container",
+    "home_hero": "home-hero-section",
+    "home_quran_card": "home-goto-quran-card",
+    "home_studio_card": "home-goto-studio-card",
+    "surah_search_input": "surah-search-input",
+    "surah_card": "surah-item-card-${surahNumber}",
+    "reader_container": "quran-reader-container",
+    "verse_item": "verse-row-${verseNumber}",
+    "verse_checkbox": "verse-select-checkbox-${verseNumber}",
+    "verse_copy_btn": "verse-copy-button-${verseNumber}",
+    "verse_play_btn": "verse-play-button-${verseNumber}",
+    "verse_favorite_btn": "verse-favorite-button-${verseNumber}",
+    "audio_player_play_pause": "audio-player-toggle-btn",
+    "audio_player_reciter_select": "audio-player-reciter-select",
+    "studio_stepper_tab": "studio-step-tab-${stepNumber}",
+    "studio_aspect_ratio_btn": "studio-aspect-btn-${ratio}",
+    "studio_template_card": "studio-template-card-${templateId}",
+    "studio_bg_option": "studio-bg-option-${bgId}",
+    "studio_font_select": "studio-font-select",
+    "studio_font_size_slider": "studio-font-size-slider",
+    "studio_color_swatch": "studio-color-swatch-${colorHex}",
+    "studio_export_btn": "studio-export-action-btn",
+    "studio_download_btn": "studio-download-video-btn",
+    "settings_theme_mode": "settings-theme-display",
+    "settings_reciter_default": "settings-default-reciter-select"
+  },
+  "instructions_to_main_agent": [
+    "Ensure `dir='rtl'` and `lang='ar'` are set on `<html lang='ar' dir='rtl'>` in `frontend/index.html` and add `class='dark'` to html tag.",
+    "Import Arabic fonts in `index.css`: use `@fontsource/ibm-plex-sans-arabic` and `@fontsource/amiri` or Google/CDN fallback `@import url('https://fonts.googleapis.com/css2?family=Amiri+Quran&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Scheherazade+New:wght@400;700&display=swap');` for flawless rendering of Quranic glyphs.",
+    "Seed a comprehensive mock dataset of all 114 Surahs with Arabic names, verse counts, revelation type (مكية / مدنية), English transliteration, and full verse texts with tafsir and reciter audio URLs (e.g. Mishary Alafasy, Abdulbasit Abdulsamad, Maher Al-Muaiqly, Minshawi).",
+    "Implement the 6-Step Studio with real HTML5 Canvas render loop: it must draw backgrounds (images/gradient video loops), calculate multi-line wrapped Arabic text with Quran font, render decorative frames/borders, draw audio visualizer bars, highlight active words, and support exporting as MP4/WebM using MediaRecorder or high-res frame capture download.",
+    "Include pre-made studio templates: 'التهجد الليلي' (Deep Sapphire + Gold), 'الفجر والسكينة' (Dawn Glow + Soft White), 'تلاوة مهيبة' (Sultan Mosque + Geometric Gold Frame), 'القصص والتدبر' (Minimalist Serif + Subtitle translation).",
+    "Ensure sticky bottom Quran audio bar stays accessible and smoothly synchronizes with verse reading highlight.",
+    "Do NOT include Duas or Ziyarat sections — strictly maintain focus on Quran Library and Quran Studio as specified.",
+    "Add explicit `data-testid` attributes to all action buttons, inputs, tabs, and cards following the specified conventions."
+  ]
+}
