@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ar" dir="rtl" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#071827" />
+    <title>أثر كريم — آياتٌ تُتلى، وأثرٌ يبقى</title>
+    <meta name="description" content="أثر كريم: قراءة القرآن الكريم والاستماع إلى التلاوات واكتشاف الآيات، واستوديو لتصميم فيديوهات قرآنية احترافية." />
+    <style>
+      html,body{background:#071827;margin:0}
+      #boot{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:radial-gradient(ellipse at 50% 30%,#0B2233 0%,#071827 70%);color:#F8FAFC;font-family:serif;z-index:9999;transition:opacity .4s ease}
+      #boot svg{width:88px;height:88px}
+      #boot h1{margin:0;font-size:40px;color:#E7B85C;font-weight:400}
+      #boot p{margin:0;color:#B8C5D1;font-size:18px}
+    </style>
+  </head>
+  <body>
+    <div id="boot" data-testid="splash-screen-container" role="status" aria-label="جارٍ تشغيل أثر كريم">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#E7B85C" stroke-width="2.2" stroke-linejoin="round"><rect x="14" y="14" width="36" height="36" rx="2"/><rect x="14" y="14" width="36" height="36" rx="2" transform="rotate(45 32 32)"/><path d="M24 42V31a8 8 0 0 1 16 0v11"/><path d="M21 42h22"/></g><circle cx="32" cy="24" r="1.8" fill="#E7B85C"/></svg>
+      <h1>أثر كريم</h1>
+      <p>آياتٌ تُتلى، وأثرٌ يبقى.</p>
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
