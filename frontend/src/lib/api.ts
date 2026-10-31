@@ -1,9 +1,8 @@
-import { resolveOfflineQuranRequest } from "@/lib/offlineContent";
+import { resolveOfflineChapterRequest, saveOfflineChapter } from "@/lib/offlineChapters";
 import { API_BASE_URL } from "@/lib/apiConfig";
+import type { ChapterDetail } from "@/types/quran";
 
-// Typed fetch layer over the FastAPI backend. Base is the relative "/api" prefix so the
-// same code works in dev (Vite proxies /api → :8001) and behind a single origin in prod.
-
+// The website uses the relative /api prefix; Android builds supply the public API origin.
 export class ApiError extends Error {
   status: number;
   body: unknown;
@@ -20,9 +19,8 @@ type JsonBody = unknown;
 
 async function offlineGet<T>(path: string): Promise<T | undefined> {
   try {
-    return await resolveOfflineQuranRequest<T>(path);
+    return await resolveOfflineChapterRequest<T>(path);
   } catch {
-    // A build without approved Content Sync credentials has no bundled Quran dataset.
     return undefined;
   }
 }
@@ -53,7 +51,12 @@ async function request<T>(method: string, path: string, body?: JsonBody): Promis
   }
 
   if (res.status === 204) return undefined as T;
-  return (await res.json()) as T;
+  const data = (await res.json()) as T;
+  const chapterMatch = method === "GET" && path.match(/^\/offline\/chapters\/(\d+)$/);
+  if (chapterMatch) {
+    await saveOfflineChapter(Number(chapterMatch[1]), data as ChapterDetail);
+  }
+  return data;
 }
 
 export const apiGet = <T>(path: string) => request<T>("GET", path);
