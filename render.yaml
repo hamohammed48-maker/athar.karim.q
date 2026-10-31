@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: athar-kareem-api
+    runtime: python
+    plan: free
+    region: frankfurt
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/
+    envVars:
+      - key: CORS_ORIGINS
+        value: https://localhost,http://localhost
+      - key: QF_CLIENT_ID
+        sync: false
+      - key: QF_CLIENT_SECRET
+        sync: false
+      - key: QF_ENV
+        value: production
