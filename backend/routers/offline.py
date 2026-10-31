@@ -9,26 +9,18 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/offline", tags=["offline"])
 
 
-def _current_bundle() -> dict:
-    result = get_offline_quran_bundle()
-    bundle = result.get("bundle")
-    if not isinstance(bundle, dict):
-        raise QuranFoundationError("لم تتوفر نسخة محتوى متزامنة لعرض السورة.")
-    return bundle
-
-
 @router.get("/chapters/{chapter_id}")
 async def offline_chapter(chapter_id: int):
-    """Serve only the requested chapter from the verified Content Sync copy."""
+    """Return only one verified chapter; the full Content Sync copy stays on the backend."""
     if not 1 <= chapter_id <= 114:
         raise HTTPException(status_code=404, detail="السورة غير موجودة")
     try:
-        bundle = await run_in_threadpool(_current_bundle)
-        chapter = next((item for item in bundle["chapters"] if item["id"] == chapter_id), None)
-        if chapter is None:
-            raise HTTPException(status_code=404, detail="السورة غير موجودة")
-        verses = [item for item in bundle["verses"] if item["chapter"] == chapter_id]
-        if len(verses) != chapter["verses_count"]:
+        result = await run_in_threadpool(get_offline_quran_bundle, None, chapter_id)
+        if result.get("status") != "updated":
+            raise QuranFoundationError("لم تتوفر نسخة محدثة من السورة.")
+        chapter = result.get("chapter")
+        verses = result.get("verses")
+        if not chapter or not isinstance(verses, list) or len(verses) != chapter.get("verses_count"):
             raise QuranFoundationError(f"بيانات السورة {chapter_id} غير مكتملة.")
         return {"chapter": chapter, "verses": verses}
     except QuranFoundationError as exc:
