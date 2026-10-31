@@ -11,7 +11,7 @@
 - Node.js 20 أو أحدث مع Corepack وYarn.
 - Python 3.11 أو أحدث.
 - اتصال إنترنت من الخادم للوصول إلى Quran.com API v4 وQDC audio API.
-- لا يلزم مفتاح API لمصادر القرآن العامة المستخدمة حالياً.
+- لا يلزم مفتاح للطلبات العامة المعتادة من Quran.com API؛ تنزيل السور عبر Quran Foundation Content Sync يحتاج بيانات اعتماد QF في إعدادات Backend الآمنة.
 
 ## بنية المشروع
 
