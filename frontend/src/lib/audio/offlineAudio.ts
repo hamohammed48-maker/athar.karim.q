@@ -13,6 +13,9 @@ export interface DownloadedAudio {
   size: number;
   downloadedAt: string;
   blob: Blob;
+  timings: ChapterAudio["timings"];
+  durationMs: number;
+  hasWordTiming: boolean;
 }
 const key = (reciterId: number, chapterId: number) => `${PREFIX}${reciterId}:${chapterId}`;
 
@@ -30,6 +33,7 @@ export async function downloadChapterAudio(
     reciterId: reciter.id, reciterName: reciter.name,
     chapterId, chapterName, size: blob.size,
     downloadedAt: new Date().toISOString(), blob,
+    timings: audio.timings, durationMs: audio.duration_ms, hasWordTiming: audio.has_word_timing,
   };
   await idbPut("media", item);
   onProgress?.(100);
@@ -50,4 +54,15 @@ export async function deleteDownloadedAudio(id: string) {
 export async function getDownloadedAudioUrl(reciterId: number, chapterId: number): Promise<string | null> {
   const item = await getDownloadedAudio(reciterId, chapterId);
   return item?.blob ? URL.createObjectURL(item.blob) : null;
+}
+
+export async function getDownloadedChapterAudio(reciterId: number, chapterId: number): Promise<ChapterAudio | null> {
+  const item = await getDownloadedAudio(reciterId, chapterId);
+  if (!item?.blob || !item.timings?.length) return null;
+  return {
+    reciter_id: item.reciterId, chapter: item.chapterId,
+    audio_url: URL.createObjectURL(item.blob),
+    duration_ms: item.durationMs, has_word_timing: item.hasWordTiming,
+    timings: item.timings,
+  };
 }
