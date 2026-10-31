@@ -16,4 +16,4 @@ services:
       - key: QF_CLIENT_SECRET
         sync: false
       - key: QF_ENV
-        value: production
+        value: prelive
