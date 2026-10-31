@@ -1,5 +1,4 @@
 import { Capacitor, registerPlugin } from "@capacitor/core";
-import { Directory, Filesystem } from "@capacitor/filesystem";
 
 const OWNER = "hamohammed48-maker";
 const REPOSITORY = "athar.karim.q";
@@ -15,6 +14,7 @@ type GithubRelease = {
 };
 
 type ApkInstallerPlugin = {
+  downloadApk(options: { url: string; expectedSize: number }): Promise<{ path: string }>;
   installApk(options: { path: string }): Promise<{ permissionRequired?: boolean }>;
 };
 
@@ -63,53 +63,16 @@ export async function checkAppUpdate(): Promise<AvailableUpdate | null> {
   };
 }
 
-function toBase64(bytes: Uint8Array): string {
-  let binary = "";
-  const chunkSize = 0x8000;
-  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
-  }
-  return btoa(binary);
-}
-
 export async function downloadAndInstallUpdate(
   update: AvailableUpdate,
   onProgress: (percent: number) => void,
 ): Promise<"permission-required" | "installer-opened"> {
-  const response = await fetch(update.downloadUrl, { cache: "no-store" });
-  if (!response.ok || !response.body) throw new Error("تعذّر تنزيل ملف التحديث.");
-  const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let received = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    if (value) {
-      chunks.push(value);
-      received += value.length;
-      onProgress(update.size > 0 ? Math.min(99, Math.round((received / update.size) * 100)) : 0);
-    }
-  }
-  if (!received || (update.size > 0 && received !== update.size)) {
-    throw new Error("ملف التحديث غير مكتمل، أعد المحاولة.");
-  }
-  const bytes = new Uint8Array(received);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.length;
-  }
-  const saved = await Filesystem.writeFile({
-    path: "updates/athar-kareem-update.apk",
-    data: toBase64(bytes),
-    directory: Directory.Cache,
-    recursive: true,
-  });
-  const file = await Filesystem.getUri({
-    path: "updates/athar-kareem-update.apk",
-    directory: Directory.Cache,
+  onProgress(0);
+  const downloaded = await ApkInstaller.downloadApk({
+    url: update.downloadUrl,
+    expectedSize: update.size,
   });
   onProgress(100);
-  const result = await ApkInstaller.installApk({ path: file.uri || saved.uri });
+  const result = await ApkInstaller.installApk({ path: downloaded.path });
   return result.permissionRequired ? "permission-required" : "installer-opened";
 }

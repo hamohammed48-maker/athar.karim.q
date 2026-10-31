@@ -155,8 +155,11 @@ jobs:
           test -n "$VERSION" || { echo "::error::Could not read Android versionName"; exit 1; }
           TAG="v$VERSION"
           APK="frontend/android/app/build/outputs/apk/release/app-release.apk"
-          gh release view "$TAG" >/dev/null 2>&1 && { echo "::error::Release $TAG already exists"; exit 1; }
-          gh release create "$TAG" "$APK#Athar Kareem Android APK" --title "أثر كريم $TAG" --notes "إصدار أندرويد $VERSION. يمكن تثبيته كتحديث فوق النسخة الحالية مع الحفاظ على البيانات المحلية."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK#Athar Kareem Android APK" --clobber
+          else
+            gh release create "$TAG" "$APK#Athar Kareem Android APK" --title "أثر كريم $TAG" --notes "إصدار أندرويد $VERSION. يمكن تثبيته كتحديث فوق النسخة الحالية مع الحفاظ على البيانات المحلية."
+          fi
 
 
       - name: Commit generated Android project and Yarn lockfile
