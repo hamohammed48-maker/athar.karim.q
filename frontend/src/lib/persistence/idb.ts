@@ -1,7 +1,7 @@
-// Minimal promise wrapper over IndexedDB. Large media (Blobs) live here — never in localStorage.
+// Minimal promise wrapper over IndexedDB. Large media and offline Quran data live here.
 const DB_NAME = "athar-kareem";
-const DB_VERSION = 1;
-export const STORES = ["favorites", "templates", "projects", "media"] as const;
+const DB_VERSION = 2;
+export const STORES = ["favorites", "templates", "projects", "media", "offline-content"] as const;
 export type StoreName = (typeof STORES)[number];
 
 export class StorageError extends Error {
@@ -23,7 +23,7 @@ function open(): Promise<IDBDatabase> {
       req.onupgradeneeded = () => {
         const db = req.result;
         if (!db.objectStoreNames.contains("favorites")) db.createObjectStore("favorites", { keyPath: "key" });
-        for (const s of ["templates", "projects", "media"]) {
+        for (const s of ["templates", "projects", "media", "offline-content"]) {
           if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { keyPath: "id" });
         }
       };

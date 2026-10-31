@@ -7,7 +7,7 @@ on:
     paths:
       - "frontend/**"
       - ".github/workflows/android-apk.yml"
-      - "backend/scripts/**"
+      - "backend/**"
   workflow_dispatch:
 
 permissions:
@@ -61,29 +61,6 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: yarn install --non-interactive
-
-      - name: Set up Python for offline content pipeline
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Validate offline content exporter
-        run: |
-          python -m pip install --disable-pip-version-check httpx
-          python -m py_compile backend/scripts/export_offline_content.py
-          python -m unittest discover -s backend/tests -p "test_offline_export.py"
-
-      - name: Generate licensed offline Quran bundle when credentials are configured
-        env:
-          QF_CLIENT_ID: ${{ secrets.QF_CLIENT_ID }}
-          QF_CLIENT_SECRET: ${{ secrets.QF_CLIENT_SECRET }}
-          QF_ENV: production
-        run: |
-          if [ -n "$QF_CLIENT_ID" ] && [ -n "$QF_CLIENT_SECRET" ]; then
-            python backend/scripts/export_offline_content.py --output frontend/public/offline/quran-content.json
-          else
-            echo "::warning::QF Content Sync credentials are not configured; this APK will contain the app shell but no full offline Quran bundle."
-          fi
 
       - name: Build web application
         working-directory: frontend

@@ -16,6 +16,7 @@ from lib.db import client, ensure_indexes  # noqa: E402
 from lib.quran_source import sync_all  # noqa: E402
 from routers.quran import router as quran_router  # noqa: E402
 from routers.download import router as download_router  # noqa: E402
+from routers.offline import router as offline_router  # noqa: E402
 
 
 @asynccontextmanager
@@ -39,6 +40,7 @@ async def root():
 
 api_router.include_router(quran_router)
 api_router.include_router(download_router)
+api_router.include_router(offline_router)
 
 app.add_middleware(
     CORSMiddleware,

@@ -1,11 +1,11 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Database, Info, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader, RangeField, Segmented, ToggleRow } from "@/components/shared/ui-kit";
 import { apiGet } from "@/lib/api";
-import { loadOfflineQuranBundle } from "@/lib/offlineContent";
+import { loadOfflineQuranBundle, syncOfflineQuranBundle } from "@/lib/offlineContent";
 import { idbClear } from "@/lib/persistence/idb";
 import { useReciters } from "@/lib/quran/hooks";
 import { formatBytes, toArabicDigits } from "@/lib/quran/format";
@@ -20,6 +20,14 @@ export default function SettingsPage() {
   const usage = useQuery({ queryKey: ["storage-estimate"], queryFn: () => navigator.storage?.estimate?.() ?? Promise.resolve(null) });
   const integrity = useQuery({ queryKey: ["integrity"], queryFn: () => apiGet<IntegrityReport>("/quran/integrity"), enabled: false });
   const offlineBundle = useQuery({ queryKey: ["offline-quran-bundle"], queryFn: loadOfflineQuranBundle, retry: false });
+  const offlineSync = useMutation({
+    mutationFn: syncOfflineQuranBundle,
+    onSuccess: (result) => {
+      void qc.invalidateQueries({ queryKey: ["offline-quran-bundle"] });
+      toast.success(result.updated ? "تم تنزيل بيانات القرآن وحفظها على الجهاز" : "بيانات القرآن محدثة بالفعل");
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "تعذّر تنزيل بيانات القرآن"),
+  });
 
   const clearAll = async () => {
     if (!confirm("سيُحذف كل المحفوظ على هذا الجهاز: المفضلة والنماذج والمشاريع والخلفيات. متابعة؟")) return;
@@ -73,18 +81,21 @@ export default function SettingsPage() {
         {offlineBundle.isLoading && <p className="text-sm text-ink-soft">جارٍ فحص حزمة القرآن المحلية…</p>}
         {offlineBundle.isSuccess && (
           <div className="space-y-1 text-sm" data-testid="offline-quran-ready">
-            <p className="text-success">حزمة القرآن المحلية متوفرة داخل التطبيق.</p>
+            <p className="text-success">بيانات القرآن محفوظة على هذا الجهاز، وتعمل القراءة والبحث دون اتصال.</p>
             <p>السور: {toArabicDigits(offlineBundle.data.chapters.length)} — الآيات: {toArabicDigits(offlineBundle.data.verses.length)}</p>
             <p>الترجمة: {offlineBundle.data.translation.name}</p>
-            <p className="text-xs text-ink-muted">آخر إعداد للحزمة: {new Date(offlineBundle.data.generated_at).toLocaleString("ar-IQ")}</p>
+            <p className="text-xs text-ink-muted">آخر مزامنة: {new Date(offlineBundle.data.sync.last_sync_at || offlineBundle.data.generated_at).toLocaleString("ar-IQ")}</p>
           </div>
         )}
         {offlineBundle.isError && (
           <p className="text-sm text-warning" data-testid="offline-quran-not-ready">
-            حزمة القرآن الكاملة لم تُضمّن في هذا الإصدار بعد. ستبقى القراءة والبحث معتمدين على الاتصال حتى تجهيز الحزمة المرخّصة.
+            لم تُنزّل بيانات القرآن إلى هذا الجهاز بعد. اتصل بالإنترنت ثم نزّلها مرة واحدة لتعمل القراءة والبحث دون اتصال.
           </p>
         )}
-        <p className="text-xs text-ink-muted">يُستخدم Content Sync الرسمي للحصول على النص والترجمة. الصوتيات تحتاج حزمة منفصلة بعد التحقق من حقوق إعادة توزيعها.</p>
+        <Button onClick={() => offlineSync.mutate()} disabled={offlineSync.isPending} data-testid="offline-quran-sync">
+          {offlineSync.isPending ? "جارٍ تنزيل بيانات القرآن…" : offlineBundle.isSuccess ? "التحقق من التحديث وتنزيله" : "تنزيل بيانات القرآن للعمل دون إنترنت"}
+        </Button>
+        <p className="text-xs text-ink-muted">تُنزّل البيانات من Content Sync الرسمي بعد التثبيت وتُحفظ محلياً. يفحص التطبيق التحديثات دورياً عند توفر الإنترنت. الصوتيات تحتاج مرحلة منفصلة للتحقق من حقوق الملفات.</p>
       </section>
       <section className={card}>
         <h2 className="flex items-center gap-2 font-semibold"><ShieldCheck className="size-4 text-gold" /> سلامة بيانات القرآن</h2>
