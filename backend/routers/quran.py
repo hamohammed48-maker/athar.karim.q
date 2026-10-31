@@ -11,7 +11,7 @@ from models.quran import (
 )
 
 router = APIRouter(prefix="/quran", tags=["quran"])
-KEY_RE = re.compile(r"^(\\d{1,3}):(\\d{1,3})$")
+KEY_RE = re.compile(r"^(\d{1,3}):(\d{1,3})$")
 
 
 def _upstream(exc: Exception) -> HTTPException:
