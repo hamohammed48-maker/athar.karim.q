@@ -10,6 +10,7 @@ import copy
 import os
 import re
 import threading
+import time
 from datetime import datetime, timedelta, timezone
 
 import httpx
@@ -20,7 +21,7 @@ EXPECTED_CHAPTERS = 114
 EXPECTED_VERSES = 6236
 EXPECTED_WORDS = 83665
 MUSHAF_ID = 4
-TRANSLATION_MATCH = "m.a.s. abdel haleem"
+TRANSLATION_MATCH = "saheeh international"
 SYNC_INTERVAL = timedelta(days=6)
 
 
@@ -39,17 +40,34 @@ class QuranFoundationClient:
             self.auth_url = "https://oauth2.quran.foundation/oauth2/token"
             self.content_root = "https://apis.quran.foundation/content"
         self.client_id = client_id
+        self.client_secret = client_secret
         self.api_base = self.content_root + "/api/v4"
         self.http = httpx.Client(timeout=90, follow_redirects=True)
-        response = self.http.post(
-            self.auth_url,
-            auth=(client_id, client_secret),
-            data={"grant_type": "client_credentials", "scope": "content"},
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-        )
+        self.token = ""
+        self.headers: dict[str, str] = {}
+        self._authenticate()
+
+    def _authenticate(self) -> None:
+        """Get a short-lived Content API token; never log credentials or tokens."""
+        response = None
+        for attempt in range(3):
+            response = self.http.post(
+                self.auth_url,
+                auth=(self.client_id, self.client_secret),
+                data={"grant_type": "client_credentials", "scope": "content"},
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+            if response.status_code != 429 and response.status_code < 500:
+                break
+            if attempt < 2:
+                time.sleep(1.5 * (attempt + 1))
         response.raise_for_status()
-        self.token = response.json()["access_token"]
-        self.headers = {"x-auth-token": self.token, "x-client-id": client_id}
+        token_data = response.json()
+        token = token_data.get("access_token")
+        if not token:
+            raise QuranFoundationError("Quran Foundation OAuth response did not include an access token.")
+        self.token = token
+        self.headers = {"x-auth-token": token, "x-client-id": self.client_id}
 
     def get(self, url_or_path: str, params: dict | None = None) -> dict:
         if url_or_path.startswith("https://"):
@@ -58,7 +76,19 @@ class QuranFoundationClient:
             url = self.content_root + url_or_path
         else:
             url = self.api_base + "/" + url_or_path.lstrip("/")
-        response = self.http.get(url, params=params, headers=self.headers)
+
+        response = None
+        refreshed_after_401 = False
+        for attempt in range(3):
+            response = self.http.get(url, params=params, headers=self.headers)
+            if response.status_code == 401 and not refreshed_after_401:
+                self._authenticate()
+                refreshed_after_401 = True
+                continue
+            if response.status_code != 429 and response.status_code < 500:
+                break
+            if attempt < 2:
+                time.sleep(1.5 * (attempt + 1))
         response.raise_for_status()
         payload = response.json()
         if isinstance(payload, dict) and payload.get("success") is False:
@@ -277,13 +307,13 @@ def _build_bundle(
         "generated_at": now,
         "source": {
             "quran": "Quran Foundation Content Sync — quran_core:1 and mushafs:4",
-            "translation": str(translation_info.get("name") or "M.A.S. Abdel Haleem"),
+            "translation": str(translation_info.get("name") or "Saheeh International"),
             "attribution": "Quran data provided by Quran Foundation.",
         },
         "translation": {
             "resource_id": int(translation_info["id"]),
-            "name": str(translation_info.get("name") or "M.A.S. Abdel Haleem"),
-            "author_name": str(translation_info.get("author_name") or "M.A.S. Abdel Haleem"),
+            "name": str(translation_info.get("name") or "Saheeh International"),
+            "author_name": str(translation_info.get("author_name") or "Saheeh International"),
         },
         "sync": {
             "resources_filter": resources_filter,
