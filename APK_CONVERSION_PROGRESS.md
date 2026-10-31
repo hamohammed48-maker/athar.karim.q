@@ -405,7 +405,7 @@ Workflow run: [41156887862](https://github.com/hamohammed48-maker/athar.karim.q/
 
 
 ### تحديث نتيجة البناء — 2026-10-31
-- Workflow `41158051568`: <badge>نجاح</badge> اكتملت جميع الخطوات، بما فيها Python tests وVite build وGradle ورفع APK.
+- Workflow `41158051568`: الحالة **نجاح**؛ اكتملت جميع الخطوات، بما فيها Python tests وVite build وGradle ورفع APK.
 - Artifact: `13025372746`, archive size `7,368,233` bytes, SHA-256 `51c729b65d497a44a89cc396b88246e2288211b90451c0d5f7c56369a1523816`.
 - هذا Artifact بُني قبل إضافة عنوان API المطلق للـ WebView، لذا لا يُستخدم لاختبار اتصال Backend. النسخة التالية هي Workflow `41158212627`.
 - لم يُجر اختبار Content Sync فعلي لغياب بيانات اعتماد QF في بيئة Backend، ولم يُحدد عنوان API العام بعد.
