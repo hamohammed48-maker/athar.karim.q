@@ -9,6 +9,12 @@ on:
       - ".github/workflows/android-apk.yml"
       - "backend/**"
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "نشر هذا الإصدار في GitHub Releases ليظهر داخل التطبيق"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -130,6 +136,19 @@ jobs:
           path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+      
+      - name: Publish Android release for in-app updates
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="$(sed -n 's/.*versionName "\\([^"]*\\)".*/\\1/p' frontend/android/app/build.gradle)"
+          test -n "$VERSION" || { echo "::error::Could not read Android versionName"; exit 1; }
+          TAG="v$VERSION"
+          APK="frontend/android/app/build/outputs/apk/debug/app-debug.apk"
+          gh release view "$TAG" >/dev/null 2>&1 && { echo "::error::Release $TAG already exists"; exit 1; }
+          gh release create "$TAG" "$APK#Athar Kareem Android APK" --title "أثر كريم $TAG" --notes "إصدار أندرويد $VERSION. يمكن تثبيته كتحديث فوق النسخة الحالية مع الحفاظ على البيانات المحلية."
+
 
       - name: Commit generated Android project and Yarn lockfile
         run: |
