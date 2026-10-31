@@ -87,8 +87,21 @@ def _find_saheeh_translation(client: QuranFoundationClient) -> dict:
         if TRANSLATION_MATCH in _label(labels):
             matches.append(item)
     if len(matches) != 1:
+        available = [
+            {
+                "id": item.get("id"),
+                "name": item.get("name"),
+                "author_name": item.get("author_name"),
+                "slug": item.get("slug"),
+                "translated_name": item.get("translated_name"),
+            }
+            for item in payload.get("translations", [])
+        ]
+        logger = __import__("logging").getLogger(__name__)
+        logger.warning("QF prelive English translation resources: %s", available)
         raise QuranFoundationError(
-            "لم يتم العثور على مورد عام واحد محدد باسم Saheeh International في فهرس Quran Foundation."
+            "تعذر تحديد Saheeh International في بيئة Quran Foundation الحالية. "
+            f"عدد الموارد الإنجليزية المتاحة: {len(available)}. راجع سجلات Render لمعرفة أسمائها."
         )
     return matches[0]
 
