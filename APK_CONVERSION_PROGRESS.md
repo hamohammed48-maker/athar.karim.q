@@ -506,3 +506,13 @@ Workflow run: [41156887862](https://github.com/hamohammed48-maker/athar.karim.q/
 - لم يُنشأ حساب Render أو خدمة فعلية بعد؛ لا يوجد رابط API عام حتى الآن.
 - خطة Render المجانية تنام بعد 15 دقيقة من عدم النشاط، ويستغرق الإقلاع عند الطلب التالي قرابة دقيقة، وملفاتها المحلية مؤقتة. ذاكرة Backend المؤقتة تختفي بعد إعادة التشغيل؛ تنزيلات القرآن على الهاتف لا تتأثر.
 - بعد ربط المستخدم حساب Render بمستودع GitHub وإضافة بيانات اعتماد QF، نأخذ الرابط الفعلي ونضعه في GitHub Actions Variable باسم ANDROID_API_BASE_URL مع لاحقة /api.
+
+
+**نتيجة التحقق بعد الدفعة 12**
+- GitHub Actions run `41161115414` اكتمل بنجاح على commit `5bedffa88250a1eb64174d1f668a95762511c7cc`.
+- نجحت خطوات تثبيت الاعتماديات، واختبارات تحويل Content Sync، وPython compile لملفات Backend، وVite/TypeScript build، ومزامنة Capacitor، وبناء Android Gradle، ورفع artifact.
+- APK artifact: `athar-kareem-debug-apk`، الحجم `7,368,414` بايت، متاح حتى 2026-11-14 عبر صفحة Actions run.
+- ظهر تحذير مؤكد بأن Repository Variable `ANDROID_API_BASE_URL` غير موجود؛ لذلك هذا البناء لا يستطيع الوصول إلى Backend من Android WebView، ولا يُعتبر APK نهائياً جاهزاً لتنزيل السور.
+- لا يوجد حتى الآن Render service منشور أو رابط API عام أو بيانات اعتماد Quran Foundation مؤكدة.
+- لم يُختبر APK على جهاز Android فعلي أو في وضع الطيران.
+- الفروع الحالية ما زالت `main` و`backup/pre-offline-apk-2026-10-31` فقط؛ SHA النسخة الاحتياطية بقي `bacb20920dc96d75b3b43624b9cddf81a079b9a9` ولم يتغير.
