@@ -157,3 +157,8 @@
 - يجب إضافة GitHub Actions Repository Variable باسم `ANDROID_API_BASE_URL` وقيمته عنوان API العام كاملاً مع المسار `/api`، مثال شكلي فقط: `https://api.example.com/api`.
 - يجب أن يسمح Backend بطلبات CORS من أصل Capacitor الافتراضي `https://localhost`، مع إبقاء HTTPS وعدم استخدام HTTP غير المشفر.
 - لا يمكن اعتماد بناء Android للبيانات قبل إدخال عنوان Backend الفعلي؛ لا نخمن نطاقاً أو عنواناً غير موثق.
+
+
+## 12. معمارية Backend منخفضة التكلفة
+
+تم اعتماد ملف OFFLINE_BACKEND_ARCHITECTURE.md كمرجع تنفيذي لبنية الاستضافة: Cloud Run لـ FastAPI عند الحاجة، وCloudflare R2 للتخزين الدائم، وCloudflare Worker Free لقراءة ملفات السور، وGitHub Actions لمزامنة Content Sync وتقسيم البيانات. لا تُنشأ حسابات أو خدمات مدفوعة ولا تُنشر الخدمة قبل موافقة المستخدم وإعداد الحسابات والأسرار بنفسه. التنزيل إلى الجهاز يكون سورة بسورة؛ أما bootstrap الأول من Quran Foundation فيجلب snapshots الموارد المرجعية الكاملة إلى backend وفق Content Sync، ثم تُقسّم على الخادم ولا تُرسل كاملة إلى الهاتف.
