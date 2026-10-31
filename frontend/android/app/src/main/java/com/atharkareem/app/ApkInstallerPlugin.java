@@ -26,7 +26,7 @@ public class ApkInstallerPlugin extends Plugin {
     @PluginMethod
     public void downloadApk(PluginCall call) {
         String urlValue = call.getString("url");
-        long expectedSize = call.getLong("expectedSize", 0L);
+        long expectedSize = call.getData().optLong("expectedSize", 0L);
         if (urlValue == null || urlValue.trim().isEmpty()) {
             call.reject("رابط ملف التحديث غير صالح.");
             return;
@@ -63,7 +63,7 @@ public class ApkInstallerPlugin extends Plugin {
                     throw new IllegalStateException("تم تحويل رابط التحديث إلى مصدر غير موثوق.");
                 }
 
-                long contentLength = connection.getContentLengthLong();
+                long contentLength = connection.getContentLength();
                 if (expectedSize > 0 && contentLength > 0 && contentLength != expectedSize) {
                     throw new IllegalStateException("حجم ملف التحديث لا يطابق الحجم المنشور.");
                 }
