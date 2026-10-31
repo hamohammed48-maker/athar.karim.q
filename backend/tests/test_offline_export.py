@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from lib.qf_offline import (
     QuranFoundationClient, QuranFoundationError, _build_bundle,
     _find_saheeh_translation, _validate_bundle,
+    EXPECTED_WORDS, EXPECTED_END_MARKERS, EXPECTED_WORD_RECORDS,
 )
 
 
@@ -20,6 +21,8 @@ class OfflineBundleTransformTests(unittest.TestCase):
                  "verse_key": "1:1", "text_uthmani": "بِسْمِ ٱللَّهِ", "juz_number": 1},
                 {"record_type": "word", "id": 100, "verse_id": 10, "chapter_id": 1,
                  "position": 1, "char_type_name": "word"},
+                {"record_type": "word", "id": 101, "verse_id": 10, "chapter_id": 1,
+                 "position": 2, "char_type_name": "end"},
             ]
         }
         self.mushaf = {
@@ -27,6 +30,7 @@ class OfflineBundleTransformTests(unittest.TestCase):
                 {"record_type": "mushaf_page", "id": 1, "page_number": 1,
                  "first_verse_id": 10, "last_verse_id": 10},
                 {"record_type": "mushaf_word", "id": 1000, "word_id": 100, "text": "بِسْمِ"},
+                {"record_type": "mushaf_word", "id": 1001, "word_id": 101, "text": "۝"},
             ]
         }
         self.translation = {"records": [{"id": 1, "verse_key": "1:1", "text": "In the name of Allah.<sup foot_note=\"1\">1</sup>"}]}
@@ -44,6 +48,18 @@ class OfflineBundleTransformTests(unittest.TestCase):
         self.assertEqual(verse["translation"], "In the name of Allah.")
         self.assertEqual(verse["words"], [{"position": 1, "text": "بِسْمِ"}])
         self.assertEqual(bundle["chapters"][0]["pages"], [1, 1])
+
+    def test_word_integrity_counts_text_words_separately_from_verse_end_markers(self):
+        self.assertEqual(EXPECTED_WORDS, 77429)
+        self.assertEqual(EXPECTED_END_MARKERS, 6236)
+        self.assertEqual(EXPECTED_WORD_RECORDS, 83665)
+        from lib.qf_offline import _build_bundle_for_test
+        bundle = _build_bundle_for_test(
+            self.core, self.mushaf, self.translation,
+            {"id": 20, "name": "Saheeh International", "author_name": "Saheeh International"},
+            "quran_core:1;mushafs:4;translations:20", "opaque-token",
+        )
+        self.assertEqual(bundle["verses"][0]["words"], [{"position": 1, "text": "بِسْمِ"}])
 
     def test_translation_lookup_selects_saheeh_international(self):
         class FakeClient:
