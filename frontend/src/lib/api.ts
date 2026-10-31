@@ -1,8 +1,8 @@
 import { resolveOfflineQuranRequest } from "@/lib/offlineContent";
+import { API_BASE_URL } from "@/lib/apiConfig";
 
 // Typed fetch layer over the FastAPI backend. Base is the relative "/api" prefix so the
 // same code works in dev (Vite proxies /api → :8001) and behind a single origin in prod.
-const BASE = "/api";
 
 export class ApiError extends Error {
   status: number;
@@ -30,7 +30,7 @@ async function offlineGet<T>(path: string): Promise<T | undefined> {
 async function request<T>(method: string, path: string, body?: JsonBody): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(BASE + path, {
+    res = await fetch(API_BASE_URL + path, {
       method,
       headers: body === undefined ? undefined : { "Content-Type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),

@@ -1,5 +1,6 @@
 import type { Chapter, ChapterDetail, SearchResponse, Topic, TopicDetail, Verse, IntegrityReport, Reciter } from "@/types/quran";
 import { idbGet, idbPut } from "@/lib/persistence/idb";
+import { API_BASE_URL } from "@/lib/apiConfig";
 
 export interface OfflineQuranBundle {
   schema_version: number;
@@ -48,7 +49,7 @@ export async function syncOfflineQuranBundle(): Promise<{ bundle: OfflineQuranBu
   const stored = await idbGet<StoredBundle>("offline-content", "quran").catch(() => undefined);
   const knownVersion = stored?.bundle.generated_at;
   const query = knownVersion ? "?known_version=" + encodeURIComponent(knownVersion) : "";
-  const response = await fetch("/api/offline/quran-bundle" + query, { cache: "no-store" });
+  const response = await fetch(API_BASE_URL + "/offline/quran-bundle" + query, { cache: "no-store" });
   if (!response.ok) {
     const body = await response.json().catch(() => null);
     const detail = typeof body?.detail === "string" ? body.detail : "تعذّر تنزيل بيانات القرآن. تحقق من الاتصال وإعداد الخادم.";

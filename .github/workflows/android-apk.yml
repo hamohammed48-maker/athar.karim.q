@@ -73,8 +73,18 @@ jobs:
           python -m py_compile backend/lib/qf_offline.py backend/routers/offline.py
           python -m unittest discover -s backend/tests -p "test_offline_export.py"
 
+      - name: Check Android API base URL configuration
+        env:
+          ANDROID_API_BASE_URL: ${{ vars.ANDROID_API_BASE_URL }}
+        run: |
+          if [ -z "$ANDROID_API_BASE_URL" ]; then
+            echo "::warning::Repository variable ANDROID_API_BASE_URL is missing. Android will use relative /api and cannot reach the remote backend from its local WebView."
+          fi
+
       - name: Build web application
         working-directory: frontend
+        env:
+          VITE_API_BASE_URL: ${{ vars.ANDROID_API_BASE_URL }}
         run: yarn build
 
       - name: Generate Android project if missing
