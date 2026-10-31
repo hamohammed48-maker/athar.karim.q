@@ -95,3 +95,36 @@ export async function resolveOfflineChapterRequest<T>(path: string): Promise<T |
   if (!match) return undefined;
   return (await loadOfflineChapter(Number(match[1]))) as T | undefined;
 }
+
+
+export async function checkOfflineQuranIntegrity() {
+  const chapters = await getDownloadedChapters();
+  const issues: string[] = [];
+  let versesCount = 0;
+  for (const item of chapters) {
+    const expected = item.chapter.verses_count;
+    if (item.verses.length !== expected) {
+      issues.push(`سورة ${item.chapter.id}: عدد الآيات ${item.verses.length}/${expected}`);
+    }
+    const seen = new Set<string>();
+    for (const verse of item.verses) {
+      versesCount += 1;
+      if (seen.has(verse.key)) issues.push(`معرّف مكرر ${verse.key}`);
+      seen.add(verse.key);
+      if (verse.key !== `${verse.chapter}:${verse.number}`) issues.push(`مرجع غير متطابق ${verse.key}`);
+      if (!verse.text?.trim() || !verse.translation?.trim() || !Array.isArray(verse.words) || !verse.words.length) {
+        issues.push(`بيانات ناقصة في ${verse.key}`);
+      }
+    }
+  }
+  return {
+    ok: issues.length === 0 && chapters.length > 0,
+    chapters_count: chapters.length,
+    expected_chapters: 114,
+    cached_chapters: chapters.length,
+    verses_count: versesCount,
+    expected_verses: 6236,
+    issues: issues.slice(0, 50),
+    source: "قاعدة البيانات المحلية داخل التطبيق (IndexedDB)",
+  };
+}
