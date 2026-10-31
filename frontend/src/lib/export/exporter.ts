@@ -123,8 +123,14 @@ export async function exportVideo(job: ExportJob): Promise<ExportResult> {
     await player.play(0);
     await done;
 
-    const stopped = new Promise<void>((r) => { recorder.onstop = () => r(); });
-    recorder.stop();
+    // Register the stop listener BEFORE calling stop(). On Android WebView,
+    // the stop event can be dispatched immediately; attaching onstop afterward
+    // may miss it and leave the UI stuck at 100% forever.
+    const stopped = new Promise<void>((resolve, reject) => {
+      recorder.addEventListener("stop", () => resolve(), { once: true });
+      recorder.addEventListener("error", () => reject(new Error("تعذّر إنهاء ملف الفيديو بعد اكتمال التسجيل")), { once: true });
+      recorder.stop();
+    });
     await stopped;
     cleanup();
     const blob = new Blob(chunks, { type: support.mime.split(";")[0] });
