@@ -14,7 +14,7 @@ export const useChapters = () =>
     queryFn: async () => {
       try {
         const chapters = await apiGet<Chapter[]>("/quran/chapters");
-        await saveOfflineChapterIndex(chapters);
+        await saveOfflineChapterIndex(chapters).catch(() => undefined);
         return chapters;
       } catch (error) {
         const local = await loadOfflineChapterIndex();
@@ -62,7 +62,7 @@ export const useTopics = () =>
     queryFn: async () => {
       try {
         const topics = await apiGet<Topic[]>("/quran/topics");
-        await saveOfflineTopics(topics);
+        await saveOfflineTopics(topics).catch(() => undefined);
         return topics;
       } catch (error) {
         const local = await loadOfflineTopics();
@@ -81,7 +81,7 @@ export const useTopic = (id: string | null) =>
       if (!topics.length) {
         try {
           topics = await apiGet<Topic[]>("/quran/topics");
-          await saveOfflineTopics(topics);
+          await saveOfflineTopics(topics).catch(() => undefined);
         } catch {
           throw new Error("قائمة المواضيع غير محفوظة على الجهاز. اتصل بالإنترنت مرة واحدة لتحميلها.");
         }
