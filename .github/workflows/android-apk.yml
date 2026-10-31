@@ -151,7 +151,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION="$(sed -n 's/.*versionName "\\([^"]*\\)".*/\\1/p' frontend/android/app/build.gradle)"
+          VERSION="$(grep -oE 'versionName "[^"]+"' frontend/android/app/build.gradle | head -n 1 | cut -d '"' -f 2)"
           test -n "$VERSION" || { echo "::error::Could not read Android versionName"; exit 1; }
           TAG="v$VERSION"
           APK="frontend/android/app/build/outputs/apk/release/app-release.apk"
