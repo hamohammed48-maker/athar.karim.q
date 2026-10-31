@@ -315,7 +315,7 @@ _CACHE_BUNDLE: dict | None = None
 _CACHE_LAST_SYNC: datetime | None = None
 
 
-def get_offline_quran_bundle(known_version: str | None = None) -> dict:
+def get_offline_quran_bundle(known_version: str | None = None, chapter_id: int | None = None) -> dict:
     """Return a current local-use bundle; sync from QF at most once per six days per worker."""
     global _CACHE_BUNDLE, _CACHE_LAST_SYNC
     client_id = os.environ.get("QF_CLIENT_ID", "").strip()
@@ -390,6 +390,18 @@ def get_offline_quran_bundle(known_version: str | None = None) -> dict:
                 "last_sync_at": _CACHE_BUNDLE["sync"]["last_sync_at"],
                 "next_sync_token": _CACHE_BUNDLE["sync"]["next_sync_token"],
                 "resources_filter": _CACHE_BUNDLE["sync"]["resources_filter"],
+            }
+        if chapter_id is not None:
+            chapter = next((item for item in _CACHE_BUNDLE["chapters"] if item["id"] == chapter_id), None)
+            if chapter is None:
+                raise QuranFoundationError(f"Unknown chapter id: {chapter_id}")
+            verses = [item for item in _CACHE_BUNDLE["verses"] if item["chapter"] == chapter_id]
+            return {
+                "status": "updated",
+                "chapter": copy.deepcopy(chapter),
+                "verses": copy.deepcopy(verses),
+                "generated_at": _CACHE_BUNDLE["generated_at"],
+                "last_sync_at": _CACHE_BUNDLE["sync"]["last_sync_at"],
             }
         return {"status": "updated", "bundle": copy.deepcopy(_CACHE_BUNDLE)}
 
