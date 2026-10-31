@@ -73,6 +73,12 @@ def _label(value: object) -> str:
     return re.sub(r"\s+", " ", str(value or "").strip().lower())
 
 
+def _clean_translation(value: str) -> str:
+    text = re.sub(r"<sup[^>]*>.*?</sup>", "", value or "", flags=re.S)
+    text = re.sub(r"<[^>]+>", "", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
 def _find_saheeh_translation(client: QuranFoundationClient) -> dict:
     payload = client.get("resources/translations", {"language": "en"})
     matches = []
@@ -200,7 +206,7 @@ def _build_bundle(
     verses = []
     for row in verses_raw:
         verse_key = str(row["verse_key"])
-        translation_text = translations_by_key.get(verse_key)
+        translation_text = _clean_translation(translations_by_key.get(verse_key, ""))
         if not translation_text:
             raise QuranFoundationError(f"Missing Saheeh International translation for {verse_key}.")
         verse_id = int(row["id"])

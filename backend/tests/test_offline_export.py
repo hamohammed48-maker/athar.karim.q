@@ -26,7 +26,7 @@ class OfflineBundleTransformTests(unittest.TestCase):
                 {"record_type": "mushaf_word", "id": 1000, "word_id": 100, "text": "بِسْمِ"},
             ]
         }
-        self.translation = {"records": [{"id": 1, "verse_key": "1:1", "text": "In the name of Allah."}]}
+        self.translation = {"records": [{"id": 1, "verse_key": "1:1", "text": "In the name of Allah.<sup foot_note=\"1\">1</sup>"}]}
 
     def test_preserves_uthmani_text_and_maps_translation_and_words(self):
         # Use the production transformer with integrity checks disabled only for this one-row fixture.
