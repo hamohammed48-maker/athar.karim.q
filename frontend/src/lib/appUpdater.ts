@@ -3,7 +3,7 @@ import { Directory, Filesystem } from "@capacitor/filesystem";
 
 const OWNER = "hamohammed48-maker";
 const REPOSITORY = "athar.karim.q";
-export const APP_VERSION = "1.0.2";
+export const APP_VERSION = "1.0.3";
 
 type ReleaseAsset = { name: string; size: number; browser_download_url: string };
 type GithubRelease = {
