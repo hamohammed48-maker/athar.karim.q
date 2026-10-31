@@ -63,7 +63,7 @@ class QuranFoundationClient:
         if url_or_path.startswith("https://"):
             url = url_or_path
         elif url_or_path.startswith("/api/v4/"):
-            url = urljoin(self.content_root, url_or_path)
+            url = self.content_root + url_or_path
         else:
             url = self.api_base + "/" + url_or_path.lstrip("/")
         response = self.http.get(url, params=params, headers=self.headers)
@@ -146,6 +146,7 @@ def build_bundle(
     translation_info: dict,
     sync_filter: str,
     sync_token: str,
+    strict: bool = True,
 ) -> dict:
     core_records = core.get("records", [])
     mushaf_records = mushaf.get("records", [])
@@ -176,22 +177,23 @@ def build_bundle(
         if r.get("verse_key")
     }
 
-    if len(chapters_raw) != EXPECTED_CHAPTERS:
-        raise RuntimeError(f"Expected 114 chapters from quran_core, got {len(chapters_raw)}")
-    if len(verses_raw) != EXPECTED_VERSES:
-        raise RuntimeError(f"Expected 6236 verses from quran_core, got {len(verses_raw)}")
-    if len(words_raw) != EXPECTED_WORDS:
-        raise RuntimeError(f"Expected 83665 word rows from quran_core, got {len(words_raw)}")
-    if len(mushaf_words) < EXPECTED_WORDS:
-        raise RuntimeError(
-            f"Uthmani Hafs mushaf snapshot has only {len(mushaf_words)} word texts; "
-            f"expected at least {EXPECTED_WORDS}"
-        )
-    if len(translations_by_key) != EXPECTED_VERSES:
-        raise RuntimeError(
-            f"Saheeh International snapshot has {len(translations_by_key)} verse rows; "
-            f"expected {EXPECTED_VERSES}"
-        )
+    if strict:
+        if len(chapters_raw) != EXPECTED_CHAPTERS:
+            raise RuntimeError(f"Expected 114 chapters from quran_core, got {len(chapters_raw)}")
+        if len(verses_raw) != EXPECTED_VERSES:
+            raise RuntimeError(f"Expected 6236 verses from quran_core, got {len(verses_raw)}")
+        if len(words_raw) != EXPECTED_WORDS:
+            raise RuntimeError(f"Expected 83665 word rows from quran_core, got {len(words_raw)}")
+        if len(mushaf_words) < EXPECTED_WORDS:
+            raise RuntimeError(
+                f"Uthmani Hafs mushaf snapshot has only {len(mushaf_words)} word texts; "
+                f"expected at least {EXPECTED_WORDS}"
+            )
+        if len(translations_by_key) != EXPECTED_VERSES:
+            raise RuntimeError(
+                f"Saheeh International snapshot has {len(translations_by_key)} verse rows; "
+                f"expected {EXPECTED_VERSES}"
+            )
 
     page_for_verse: dict[int, int] = {}
     for row in mushaf_records:
@@ -290,6 +292,8 @@ def validate_bundle(bundle: dict) -> None:
         raise RuntimeError("Offline bundle contains duplicate verse keys")
     if any(not v["text"] or not v["translation"] for v in verses):
         raise RuntimeError("Offline bundle contains an empty Quran text or translation")
+    if sum(len(v["words"]) for v in verses) != EXPECTED_WORDS:
+        raise RuntimeError("Offline bundle word count does not match the canonical 83,665 words")
     if any(not v["words"] for v in verses):
         raise RuntimeError("Offline bundle contains a verse without word-level Uthmani text")
 
