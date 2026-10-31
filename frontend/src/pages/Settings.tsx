@@ -3,8 +3,7 @@ import { Database, Info, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader, RangeField, Segmented, ToggleRow } from "@/components/shared/ui-kit";
-import { apiGet } from "@/lib/api";
-import { getDownloadedChapterIds } from "@/lib/offlineChapters";
+import { checkOfflineQuranIntegrity, getDownloadedChapterIds } from "@/lib/offlineChapters";
 import { idbClear } from "@/lib/persistence/idb";
 import { useReciters } from "@/lib/quran/hooks";
 import { formatBytes, toArabicDigits } from "@/lib/quran/format";
@@ -17,7 +16,7 @@ export default function SettingsPage() {
   const qc = useQueryClient();
   const { data: reciters } = useReciters();
   const usage = useQuery({ queryKey: ["storage-estimate"], queryFn: () => navigator.storage?.estimate?.() ?? Promise.resolve(null) });
-  const integrity = useQuery({ queryKey: ["integrity"], queryFn: () => apiGet<IntegrityReport>("/quran/integrity"), enabled: false });
+  const integrity = useQuery({ queryKey: ["integrity", "local"], queryFn: checkOfflineQuranIntegrity, enabled: false });
   const downloaded = useQuery({
     queryKey: ["offline-quran-chapters"],
     queryFn: getDownloadedChapterIds,
@@ -89,7 +88,7 @@ export default function SettingsPage() {
       </section>
       <section className={card}>
         <h2 className="flex items-center gap-2 font-semibold"><ShieldCheck className="size-4 text-gold" /> سلامة بيانات القرآن</h2>
-        <p className="text-sm text-ink-soft">فحص عدد السور (١١٤) والآيات (٦٢٣٦) والتسلسل والتكرار والنصوص الفارغة في النسخة المخزنة من Quran.com.</p>
+        <p className="text-sm text-ink-soft">فحص اكتمال النص والترجمة وتسلسل الآيات في السور المحفوظة داخل التطبيق، دون الحاجة إلى الإنترنت.</p>
         <Button variant="outline" onClick={() => void integrity.refetch()} disabled={integrity.isFetching} data-testid="settings-integrity-run">{integrity.isFetching ? "جارٍ الفحص…" : "تشغيل الفحص"}</Button>
         {integrity.data && (
           <div className="rounded-xl bg-navy-800 p-3 text-sm" data-testid="settings-integrity-result">
