@@ -1,5 +1,10 @@
 import logging
+import os
 
+from fastapi import APIRouter, HTTPException
+from starlette.concurrency import run_in_threadpool
+
+from lib import quran_source
 from fastapi import APIRouter, HTTPException
 from starlette.concurrency import run_in_threadpool
 
@@ -27,6 +32,24 @@ async def offline_chapter(chapter_id: int):
     """Return only one verified chapter; the full Content Sync copy stays on the backend."""
     if not 1 <= chapter_id <= 114:
         raise HTTPException(status_code=404, detail="السورة غير موجودة")
+    # Pre-live Content Sync intentionally exposes no quran_core snapshot.
+    # For app smoke-testing only, serve the two sample chapters through the
+    # existing Quran.com adapter; the app persists them locally in IndexedDB.
+    if os.environ.get("QF_ENV", "production").strip().lower() == "prelive":
+        if chapter_id not in {1, 2}:
+            raise HTTPException(status_code=404, detail="نسخة Pre-live التجريبية تتيح الفاتحة والبقرة فقط.")
+        try:
+            meta = await quran_source.get_chapter_meta(chapter_id)
+            if not meta:
+                raise HTTPException(status_code=404, detail="السورة غير موجودة")
+            verses = await quran_source.ensure_chapter(chapter_id)
+            if len(verses) != meta["verses_count"]:
+                raise QuranFoundationError(f"بيانات السورة {chapter_id} غير مكتملة.")
+            return {"chapter": meta, "verses": verses}
+        except quran_source.UpstreamError as exc:
+            logger.warning("prelive sample chapter unavailable: %s", exc)
+            raise HTTPException(status_code=503, detail="تعذّر جلب السورة التجريبية حالياً.") from exc
+
     try:
         result = await run_in_threadpool(get_offline_quran_bundle, None, chapter_id)
         if result.get("status") != "updated":
