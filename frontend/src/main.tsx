@@ -18,4 +18,11 @@ createRoot(document.getElementById('root')!).render(
 )
 
 // Keep a downloaded Quran copy current when the backend and Quran Foundation are reachable.
-void maybeSyncOfflineQuranBundle();
+const checkOfflineQuranSync = () => void maybeSyncOfflineQuranBundle();
+checkOfflineQuranSync();
+window.addEventListener("online", checkOfflineQuranSync);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") checkOfflineQuranSync();
+});
+// Also check while the app remains open for several days.
+window.setInterval(checkOfflineQuranSync, 12 * 60 * 60 * 1000);
