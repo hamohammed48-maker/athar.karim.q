@@ -60,14 +60,13 @@ function SearchTab({ names, initial }: { names: Record<number, string>; initial:
         </Select>
         <Button type="submit" className="h-12 px-6" data-testid="verse-search-submit">بحث</Button>
       </form>
-      <p className="text-xs text-ink-muted">يتجاهل البحث التشكيل واختلاف صور الهمزة والألف، دون تغيير النص المعروض.</p>
+      <p className="text-xs text-ink-muted">يبحث داخل السور المحفوظة على جهازك فقط، ويتجاهل التشكيل واختلاف صور الهمزة والألف دون تغيير النص المعروض.</p>
       {isFetching && <LoadingBlock label="جارٍ البحث…" />}
       {isError && <ErrorBlock message="تعذّر البحث. أعد المحاولة." onRetry={() => refetch()} />}
       {data && !isFetching && (
         <>
           <p className="text-sm text-ink-soft" data-testid="verse-search-count">
-            {data.total ? `${toArabicDigits(data.total)} نتيجة${data.total > data.results.length ? ` (يُعرض أول ${toArabicDigits(data.results.length)})` : ""}` : "لا توجد نتائج مطابقة."}
-            {data.indexed_chapters < 114 && ` — الفهرسة المحلية جارية (${toArabicDigits(data.indexed_chapters)}/١١٤ سورة).`}
+            {data.total ? `${toArabicDigits(data.total)} نتيجة ضمن ${toArabicDigits(data.indexed_chapters)} سورة محفوظة${data.total > data.results.length ? ` (يُعرض أول ${toArabicDigits(data.results.length)})` : ""}` : data.indexed_chapters ? "لا توجد نتائج مطابقة في السور المحفوظة." : "لا توجد سور محفوظة بعد. افتح السورة مع توفر الإنترنت لتنزيلها أولاً."}
           </p>
           <div className="space-y-4">{data.results.map((v) => <VerseResultCard key={v.key} verse={v} surahName={names[v.chapter] ?? ""} />)}</div>
         </>
@@ -137,7 +136,7 @@ function RandomTab({ names }: { names: Record<number, string> }) {
     <div className="space-y-6">
       <div className="flex flex-col items-start gap-3 rounded-2xl border border-gold/30 bg-navy-800 p-6">
         <Sparkles className="size-6 text-gold" />
-        <p className="text-ink-soft">تُختار الآية عشوائياً من نص المصحف الكامل، مع تجنّب تكرار الآيات التي ظهرت مؤخراً.</p>
+        <p className="text-ink-soft">تُختار الآية عشوائياً من السور المحفوظة على جهازك. إذا لم تكن هناك سور محفوظة، يلزم الاتصال بالإنترنت لجلب آية.</p>
         <Button onClick={() => m.mutate()} disabled={m.isPending} className={cn("h-12 border border-gold bg-transparent px-6 text-gold hover:bg-gold/10")} data-testid="random-verse-button">
           <Shuffle className="size-4" /> {verse ? "آية أخرى" : "آية عشوائية"}
         </Button>
