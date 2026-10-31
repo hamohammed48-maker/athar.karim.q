@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Clapperboard, Heart, ListChecks, Minus, Play, Plus, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clapperboard, Download, Heart, ListChecks, Loader2, Minus, Play, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ErrorBlock, LoadingBlock, ToggleRow } from "@/components/shared/ui-kit";
 import { quranPlayer, usePlayer } from "@/lib/audio/player";
 import { playVerses } from "@/lib/audio/playVerses";
+import { downloadChapterAudio, getDownloadedAudio } from "@/lib/audio/offlineAudio";
+import { toast } from "sonner";
 import { useFavorites, useToggleFavorite } from "@/lib/persistence/stores";
 import { revelationLabel, toArabicDigits, verseMarker } from "@/lib/quran/format";
 import { useChapter, useChapters, useReciters } from "@/lib/quran/hooks";
@@ -28,9 +30,32 @@ export default function QuranReader() {
   const [selected, setSelected] = useState<number[]>([]);
   const [anchor, setAnchor] = useState<number | null>(null);
   const [progress, setProgress] = useState(0);
+  const [audioDownloading, setAudioDownloading] = useState(false);
+  const [audioDownloaded, setAudioDownloaded] = useState(false);
   const [range, setRange] = useState({ from: 1, to: 1 });
   const listRef = useRef<HTMLDivElement>(null);
   const name = data?.chapter.name_arabic ?? "";
+
+  useEffect(() => {
+    let active = true;
+    void getDownloadedAudio(settings.reciterId, n).then((item) => { if (active) setAudioDownloaded(!!item); });
+    return () => { active = false; };
+  }, [settings.reciterId, n]);
+
+  const downloadAudio = async () => {
+    const reciter = reciters?.find((item) => item.id === settings.reciterId);
+    if (!reciter || !data || audioDownloading) return;
+    setAudioDownloading(true);
+    try {
+      await downloadChapterAudio(reciter, n, name);
+      setAudioDownloaded(true);
+      toast.success(`تم تنزيل صوت سورة ${name} للقارئ ${reciter.name} ويمكن الاستماع إليها دون إنترنت.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذّر تنزيل صوت السورة.");
+    } finally {
+      setAudioDownloading(false);
+    }
+  };
   const favSet = useMemo(() => new Set(favs?.map((f) => f.key)), [favs]);
 
   useEffect(() => { setSelected([]); setAnchor(null); }, [n]);
@@ -152,6 +177,10 @@ export default function QuranReader() {
             <p className="relative mt-2 text-sm text-ink-soft">{revelationLabel(data.chapter.revelation_place)} · {toArabicDigits(data.chapter.verses_count)} آية · ترتيب النزول {toArabicDigits(data.chapter.revelation_order)}</p>
             <div className="relative mt-4 flex flex-wrap justify-center gap-2">
               <Button onClick={() => playFrom(1)} className="h-10" data-testid="reader-play-surah"><Play className="size-4" /> استماع للسورة</Button>
+              <Button variant="outline" onClick={() => void downloadAudio()} disabled={audioDownloading || audioDownloaded || !reciters?.length} className="h-10" data-testid="reader-download-audio">
+                {audioDownloading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+                {audioDownloading ? "جارٍ تنزيل الصوت…" : audioDownloaded ? "الصوت محفوظ دون إنترنت" : "تحميل الصوت دون إنترنت"}
+              </Button>
               <Popover>
                 <PopoverTrigger render={<Button variant="outline" className="h-10" data-testid="reader-range-button" />}>
                   <ListChecks className="size-4" /> تحديد نطاق
