@@ -163,14 +163,15 @@ def _build_bundle(
         if r.get("verse_key")
     }
 
-    if len(chapters_raw) != EXPECTED_CHAPTERS:
-        raise QuranFoundationError(f"Expected 114 chapters, received {len(chapters_raw)}.")
-    if len(verses_raw) != EXPECTED_VERSES:
-        raise QuranFoundationError(f"Expected 6236 verses, received {len(verses_raw)}.")
-    if len(words_raw) != EXPECTED_WORDS or len(mushaf_words) < EXPECTED_WORDS:
-        raise QuranFoundationError("Uthmani word data is incomplete.")
-    if len(translations_by_key) != EXPECTED_VERSES:
-        raise QuranFoundationError("Saheeh International translation snapshot is incomplete.")
+    if validate:
+        if len(chapters_raw) != EXPECTED_CHAPTERS:
+            raise QuranFoundationError(f"Expected 114 chapters, received {len(chapters_raw)}.")
+        if len(verses_raw) != EXPECTED_VERSES:
+            raise QuranFoundationError(f"Expected 6236 verses, received {len(verses_raw)}.")
+        if len(words_raw) != EXPECTED_WORDS or len(mushaf_words) < EXPECTED_WORDS:
+            raise QuranFoundationError("Uthmani word data is incomplete.")
+        if len(translations_by_key) != EXPECTED_VERSES:
+            raise QuranFoundationError("Saheeh International translation snapshot is incomplete.")
 
     page_for_verse: dict[int, int] = {}
     for row in mushaf_records:
