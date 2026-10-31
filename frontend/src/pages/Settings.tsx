@@ -1,5 +1,6 @@
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Database, Info, ShieldCheck, Trash2, Headphones } from "lucide-react";
+import { Database, Info, ShieldCheck, Trash2, Headphones, Download, RefreshCw, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader, RangeField, Segmented, ToggleRow } from "@/components/shared/ui-kit";
@@ -10,9 +11,64 @@ import { formatBytes, toArabicDigits } from "@/lib/quran/format";
 import { deleteDownloadedAudio, listDownloadedAudio } from "@/lib/audio/offlineAudio";
 import { ASPECTS, RESOLUTIONS, type AspectRatio, type Resolution } from "@/lib/rendering/design";
 import { DEFAULT_SETTINGS, updateSettings, useSettings } from "@/lib/settings";
+import { APP_VERSION, checkAppUpdate, downloadAndInstallUpdate, type AvailableUpdate } from "@/lib/appUpdater";
 
 export default function SettingsPage() {
   const s = useSettings();
+  const [availableUpdate, setAvailableUpdate] = useState<AvailableUpdate | null>(() => {
+    try { return JSON.parse(localStorage.getItem("athar.appUpdate.available.v1") || "null") as AvailableUpdate | null; }
+    catch { return null; }
+  });
+  const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "current" | "available" | "downloading" | "permission" | "installer" | "error">("idle");
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [updateMessage, setUpdateMessage] = useState("");
+
+  const handleCheckUpdate = async () => {
+    setUpdateStatus("checking");
+    setUpdateMessage("");
+    try {
+      const latest = await checkAppUpdate();
+      setAvailableUpdate(latest);
+      localStorage.setItem("athar.appUpdate.available.v1", JSON.stringify(latest));
+      setUpdateStatus(latest ? "available" : "current");
+      if (!latest) setUpdateMessage("أنت تستخدم أحدث إصدار متاح.");
+    } catch (error) {
+      setUpdateStatus("error");
+      setUpdateMessage(error instanceof Error ? error.message : "تعذّر التحقق من التحديث.");
+    }
+  };
+
+  const handleInstallUpdate = async () => {
+    if (!availableUpdate) return;
+    setUpdateStatus("downloading");
+    setDownloadProgress(0);
+    setUpdateMessage("");
+    try {
+      const result = await downloadAndInstallUpdate(availableUpdate, setDownloadProgress);
+      if (result === "permission-required") {
+        setUpdateStatus("permission");
+        setUpdateMessage("فعّل السماح بتثبيت التطبيقات من هذا المصدر، ثم ارجع واضغط تثبيت التحديث مرة أخرى.");
+      } else {
+        setUpdateStatus("installer");
+        setUpdateMessage("اكتمل التنزيل. أكّد التحديث في نافذة أندرويد.");
+      }
+    } catch (error) {
+      setUpdateStatus("error");
+      setUpdateMessage(error instanceof Error ? error.message : "تعذّر تنزيل التحديث.");
+    }
+  };
+
+  useEffect(() => {
+    const onAvailable = (event: Event) => {
+      const detail = (event as CustomEvent<AvailableUpdate | null>).detail;
+      setAvailableUpdate(detail);
+      setUpdateStatus(detail ? "available" : "current");
+      try { localStorage.setItem("athar.appUpdate.available.v1", JSON.stringify(detail)); } catch { /* ignore */ }
+    };
+    window.addEventListener("athar-app-update", onAvailable);
+    void handleCheckUpdate();
+    return () => window.removeEventListener("athar-app-update", onAvailable);
+  }, []);
   const qc = useQueryClient();
   const { data: reciters } = useReciters();
   const usage = useQuery({ queryKey: ["storage-estimate"], queryFn: () => navigator.storage?.estimate?.() ?? Promise.resolve(null) });
@@ -131,6 +187,35 @@ export default function SettingsPage() {
           </div>
         )}
         {integrity.isError && <p className="text-sm text-danger">تعذّر تشغيل الفحص.</p>}
+      </section>
+      <section className={card} id="app-update">
+        <h2 className="flex items-center gap-2 font-semibold"><Smartphone className="size-4 text-gold" /> تحديث التطبيق</h2>
+        <p className="text-sm text-ink-soft">الإصدار المثبت: {APP_VERSION}</p>
+        {availableUpdate && (
+          <div className="space-y-2 rounded-xl border border-gold/30 bg-navy-800 p-3">
+            <p className="font-semibold text-gold">يتوفر إصدار جديد: {availableUpdate.version}</p>
+            {availableUpdate.notes && <p className="whitespace-pre-wrap text-sm text-ink-soft">{availableUpdate.notes}</p>}
+            <p className="text-xs text-ink-muted">حجم الملف: {formatBytes(availableUpdate.size)}</p>
+          </div>
+        )}
+        {updateStatus === "downloading" && (
+          <div className="space-y-2">
+            <div className="h-2 overflow-hidden rounded-full bg-navy-700"><div className="h-full rounded-full bg-gold transition-all" style={{ width: downloadProgress + "%" }} /></div>
+            <p className="text-sm text-ink-soft">جارٍ تنزيل التحديث: {toArabicDigits(downloadProgress)}٪</p>
+          </div>
+        )}
+        {updateMessage && <p className={updateStatus === "error" ? "text-sm text-danger" : "text-sm text-ink-soft"}>{updateMessage}</p>}
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => void handleCheckUpdate()} disabled={updateStatus === "checking" || updateStatus === "downloading"}>
+            <RefreshCw className="me-2 size-4" /> {updateStatus === "checking" ? "جارٍ التحقق…" : "التحقق من التحديث"}
+          </Button>
+          {availableUpdate && (
+            <Button onClick={() => void handleInstallUpdate()} disabled={updateStatus === "downloading"}>
+              <Download className="me-2 size-4" /> {updateStatus === "permission" ? "إعادة محاولة التثبيت" : "تنزيل وتثبيت التحديث"}
+            </Button>
+          )}
+        </div>
+        <p className="text-xs text-ink-muted">يتحقق التطبيق من التحديثات عند فتحه. عند توفر إصدار جديد، نزّله من هنا؛ سيطلب أندرويد تأكيد التثبيت. لا تُحذف بيانات السور والقوالب عند التحديث.</p>
       </section>
       <section className={card} id="about">
         <h2 className="flex items-center gap-2 font-semibold"><Info className="size-4 text-gold" /> حول التطبيق</h2>
