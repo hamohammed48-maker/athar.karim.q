@@ -22,7 +22,9 @@ logger = logging.getLogger(__name__)
 
 EXPECTED_CHAPTERS = 114
 EXPECTED_VERSES = 6236
-EXPECTED_WORDS = 83665
+EXPECTED_WORDS = 77429
+EXPECTED_END_MARKERS = 6236
+EXPECTED_WORD_RECORDS = EXPECTED_WORDS + EXPECTED_END_MARKERS
 MUSHAF_ID = 4
 TRANSLATION_MATCH = "saheeh international"
 SYNC_INTERVAL = timedelta(days=6)
@@ -226,25 +228,34 @@ def _build_bundle(
             raise QuranFoundationError(f"Expected 114 chapters, received {len(chapters_raw)}.")
         if len(verses_raw) != EXPECTED_VERSES:
             raise QuranFoundationError(f"Expected 6236 verses, received {len(verses_raw)}.")
-        if len(words_raw) != EXPECTED_WORDS or len(mushaf_words) < EXPECTED_WORDS:
-            core_word_types: dict[str, int] = {}
-            for record in core_records:
-                if record.get("record_type") == "word":
-                    kind = str(record.get("char_type_name") or "missing")
-                    core_word_types[kind] = core_word_types.get(kind, 0) + 1
-            mushaf_word_records = sum(
-                1 for record in mushaf_records
-                if record.get("record_type") == "mushaf_word"
-            )
+        core_word_types: dict[str, int] = {}
+        for record in core_records:
+            if record.get("record_type") == "word":
+                kind = str(record.get("char_type_name") or "missing")
+                core_word_types[kind] = core_word_types.get(kind, 0) + 1
+        mushaf_word_records = sum(
+            1 for record in mushaf_records
+            if record.get("record_type") == "mushaf_word"
+        )
+        end_markers = core_word_types.get("end", 0)
+        if (
+            len(words_raw) != EXPECTED_WORDS
+            or end_markers != EXPECTED_END_MARKERS
+            or sum(core_word_types.values()) != EXPECTED_WORD_RECORDS
+            or mushaf_word_records < EXPECTED_WORD_RECORDS
+            or len(mushaf_words) < EXPECTED_WORD_RECORDS
+        ):
             diagnostics = (
-                f"core_word_records={len(words_raw)}/{EXPECTED_WORDS}; "
+                f"text_words={len(words_raw)}/{EXPECTED_WORDS}; "
+                f"end_markers={end_markers}/{EXPECTED_END_MARKERS}; "
+                f"all_core_word_records={sum(core_word_types.values())}/{EXPECTED_WORD_RECORDS}; "
                 f"mushaf_word_records={mushaf_word_records}; "
                 f"unique_uthmani_word_ids={len(mushaf_words)}; "
                 f"core_word_types={core_word_types}"
             )
             logger.error("Incomplete Uthmani word snapshot: %s", diagnostics)
             raise QuranFoundationError(
-                "بيانات الكلمات العثمانية غير مكتملة. " + diagnostics
+                "بيانات الكلمات والعلامات العثمانية غير مكتملة. " + diagnostics
             )
         if len(translations_by_key) != EXPECTED_VERSES:
             raise QuranFoundationError("Selected translation snapshot is incomplete.")
@@ -375,7 +386,7 @@ def _validate_bundle(bundle: dict) -> None:
     if len(verses) != EXPECTED_VERSES or len({v["key"] for v in verses}) != EXPECTED_VERSES:
         raise QuranFoundationError("Offline copy failed the 6236-verse integrity check.")
     if sum(len(v["words"]) for v in verses) != EXPECTED_WORDS:
-        raise QuranFoundationError("Offline copy failed the 83,665-word integrity check.")
+        raise QuranFoundationError("Offline copy failed the 77,429-text-word integrity check.")
     if any(not v["text"] or not v["translation"] or not v["words"] for v in verses):
         raise QuranFoundationError("Offline copy contains an incomplete verse record.")
 
