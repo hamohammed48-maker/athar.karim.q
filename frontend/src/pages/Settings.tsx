@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader, RangeField, Segmented, ToggleRow } from "@/components/shared/ui-kit";
 import { apiGet } from "@/lib/api";
+import { loadOfflineQuranBundle } from "@/lib/offlineContent";
 import { idbClear } from "@/lib/persistence/idb";
 import { useReciters } from "@/lib/quran/hooks";
 import { formatBytes, toArabicDigits } from "@/lib/quran/format";
@@ -18,6 +19,7 @@ export default function SettingsPage() {
   const { data: reciters } = useReciters();
   const usage = useQuery({ queryKey: ["storage-estimate"], queryFn: () => navigator.storage?.estimate?.() ?? Promise.resolve(null) });
   const integrity = useQuery({ queryKey: ["integrity"], queryFn: () => apiGet<IntegrityReport>("/quran/integrity"), enabled: false });
+  const offlineBundle = useQuery({ queryKey: ["offline-quran-bundle"], queryFn: loadOfflineQuranBundle, retry: false });
 
   const clearAll = async () => {
     if (!confirm("سيُحذف كل المحفوظ على هذا الجهاز: المفضلة والنماذج والمشاريع والخلفيات. متابعة؟")) return;
@@ -65,6 +67,24 @@ export default function SettingsPage() {
         </p>
         <p className="text-xs text-ink-muted">المفضلة والنماذج والمشاريع والخلفيات محفوظة في IndexedDB على هذا المتصفح فقط، ولا تُزامن مع أجهزة أخرى. يمكنك تصدير النماذج من «نماذجي المحفوظة».</p>
         <Button variant="destructive" onClick={clearAll} data-testid="settings-clear-data">حذف كل البيانات المحلية</Button>
+      </section>
+      <section className={card}>
+        <h2 className="flex items-center gap-2 font-semibold"><Database className="size-4 text-gold" /> بيانات القرآن دون إنترنت</h2>
+        {offlineBundle.isLoading && <p className="text-sm text-ink-soft">جارٍ فحص حزمة القرآن المحلية…</p>}
+        {offlineBundle.isSuccess && (
+          <div className="space-y-1 text-sm" data-testid="offline-quran-ready">
+            <p className="text-success">حزمة القرآن المحلية متوفرة داخل التطبيق.</p>
+            <p>السور: {toArabicDigits(offlineBundle.data.chapters.length)} — الآيات: {toArabicDigits(offlineBundle.data.verses.length)}</p>
+            <p>الترجمة: {offlineBundle.data.translation.name}</p>
+            <p className="text-xs text-ink-muted">آخر إعداد للحزمة: {new Date(offlineBundle.data.generated_at).toLocaleString("ar-IQ")}</p>
+          </div>
+        )}
+        {offlineBundle.isError && (
+          <p className="text-sm text-warning" data-testid="offline-quran-not-ready">
+            حزمة القرآن الكاملة لم تُضمّن في هذا الإصدار بعد. ستبقى القراءة والبحث معتمدين على الاتصال حتى تجهيز الحزمة المرخّصة.
+          </p>
+        )}
+        <p className="text-xs text-ink-muted">يُستخدم Content Sync الرسمي للحصول على النص والترجمة. الصوتيات تحتاج حزمة منفصلة بعد التحقق من حقوق إعادة توزيعها.</p>
       </section>
       <section className={card}>
         <h2 className="flex items-center gap-2 font-semibold"><ShieldCheck className="size-4 text-gold" /> سلامة بيانات القرآن</h2>
