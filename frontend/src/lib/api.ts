@@ -54,7 +54,11 @@ async function request<T>(method: string, path: string, body?: JsonBody): Promis
   const data = (await res.json()) as T;
   const chapterMatch = method === "GET" && path.match(/^\/offline\/chapters\/(\d+)$/);
   if (chapterMatch) {
-    await saveOfflineChapter(Number(chapterMatch[1]), data as ChapterDetail);
+    try {
+      await saveOfflineChapter(Number(chapterMatch[1]), data as ChapterDetail);
+    } catch {
+      // Do not block online reading if local storage is full or unavailable.
+    }
   }
   return data;
 }
