@@ -253,4 +253,37 @@ Workflow run: `41156792473` على commit `dc37bf71384acbaf36cb49fbbd840419243db
 ## 7. آخر نقطة توقف
 آخر تحديث: 2026-10-31
 
-إعداد Capacitor 8.6.0 موجود على `main`، ونجح GitHub Actions في تثبيت Android SDK وحزم Yarn وبناء الواجهة وإنشاء مشروع Android. التشغيل الرابع `41156792473` يجري الآن مرحلة Gradle `assembleDebug`. لا يوجد APK مؤكد أو مسلّم حتى الآن. النسخة الاحتياطية لم تُمس.
+### نتيجة التشغيل الرابع — APK تم بناؤه ورفعه بنجاح
+Workflow run: [41156792473](https://github.com/hamohammed48-maker/athar.karim.q/actions/runs/41156792473)
+- commit البناء: `dc37bf71384acbaf36cb49fbbd840419243db7fd`.
+- نجح تثبيت Node.js 22 وJava 21 وAndroid SDK platform 36 وBuild Tools 36.0.0.
+- نجح تثبيت الاعتماديات عبر Yarn Classic 1.22.22 ونجح `yarn build`.
+- نجح `yarn cap add android` و`yarn cap sync android`.
+- نجح `./gradlew assembleDebug --no-daemon`، وظهرت نتيجة `BUILD SUCCESSFUL`.
+- نجح رفع الملف `app-debug.apk` إلى Artifact باسم `athar-kareem-debug-apk`.
+- Artifact ID: `13025566433`. حجم أرشيف Artifact المرفوع: `7,366,166` بايت. هذا حجم الأرشيف الذي أبلغت به GitHub Actions، وليس قياساً مؤكداً لحجم APK الخام.
+- رابط Artifact: https://github.com/hamohammed48-maker/athar.karim.q/actions/runs/41156792473/artifacts/13025566433
+- تنتهي صلاحية Artifact بتاريخ 2026-11-14 ما لم يُحفظ في مكان آخر.
+
+### سبب فشل حالة Workflow الرابع
+- البناء ورفع APK نجحا، لكن خطوة حفظ `frontend/android` و`frontend/yarn.lock` في `main` فشلت لأن `git push` رُفض برسالة `fetch first` بعد تقدم الفرع البعيد أثناء التشغيل.
+- لم يكن هذا فشل Gradle أو فشل إنشاء APK.
+
+### التشغيل الخامس — إعادة البناء مع معالجة تعارض Git
+Workflow run: [41156887862](https://github.com/hamohammed48-maker/athar.karim.q/actions/runs/41156887862)
+- أضيفت خطوة `git fetch origin main` ثم `git rebase origin/main` قبل `git push` لمعالجة تقدم الفرع البعيد.
+- عند آخر تحقق: Node.js وJava وAndroid SDK وYarn أُعدّت بنجاح، وكانت خطوة تثبيت اعتماديات الواجهة قيد التنفيذ.
+- لم يُسجل بعد نجاح build أو رفع Artifact أو حفظ ملفات Android من هذا التشغيل.
+
+### حماية المستودع
+- الفروع الموجودة عند آخر تحقق: `main` و`backup/pre-offline-apk-2026-10-31` فقط.
+- SHA النسخة الاحتياطية ما زال `bacb20920dc96d75b3b43624b9cddf81a079b9a9` ولم يُكتب عليه.
+- SHA فرع `main` عند آخر تحقق: `68aa2c33818b13a6a02527128121d969cd88813e`.
+
+### الخطوة التالية
+1. متابعة التشغيل الخامس حتى ينتهي.
+2. التأكد من حفظ `frontend/android` و`frontend/yarn.lock` في `main`.
+3. بعد تثبيت Android scaffold على الفرع، بدء جرد كل نقاط اتصال API والخدمات الخارجية في الواجهة، ثم تصميم حزمة قرآن محلية موثقة ومطابقة للنص والترجمة والكلمات والتوقيتات، مع التحقق من تراخيص الصوتيات.
+4. بناء طبقة تخزين محلية واختبار كل ميزة في وضع الطيران وبعد إعادة تشغيل الجهاز. لا يُعلن اكتمال Offline قبل نجاح هذه الاختبارات.
+
+**تنبيه نطاق:** ملف APK الناتج حالياً Debug shell لواجهة الويب. لم يُثبت بعد على جهاز فعلي، ولم تُحوّل البيانات أو الصوتيات إلى ملفات محلية؛ لذلك لا يمثل بعد نسخة Offline مكتملة.
