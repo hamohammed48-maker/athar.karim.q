@@ -109,12 +109,39 @@ export async function exportVideo(job: ExportJob): Promise<ExportResult> {
     if (job.signal.aborted) throw new DOMException("cancelled", "AbortError");
     let errCheck = 0;
     const done = new Promise<void>((resolve, reject) => {
-      player.onEnded = () => { clearInterval(errCheck); setTimeout(resolve, 350); };
+      let settled = false;
+      let reachedEndAt = 0;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        clearInterval(errCheck);
+        setTimeout(resolve, 350);
+      };
+      player.onEnded = finish;
       errCheck = window.setInterval(() => {
         const s = player.frame();
-        if (s.status === "error") { clearInterval(errCheck); reject(new Error(s.error ?? "تعذّر تشغيل التلاوة أثناء التصدير")); }
-      }, 300);
-      job.signal.addEventListener("abort", () => { clearInterval(errCheck); reject(new DOMException("cancelled", "AbortError")); });
+        if (s.status === "error") {
+          if (settled) return;
+          settled = true;
+          clearInterval(errCheck);
+          reject(new Error(s.error ?? "تعذّر تشغيل التلاوة أثناء التصدير"));
+          return;
+        }
+        // Android WebView can miss the final media ended callback. The timeline
+        // clock is authoritative; finish once it reaches its end and remains there.
+        if (total > 0 && s.globalMs >= total - 80) {
+          if (!reachedEndAt) reachedEndAt = performance.now();
+          else if (performance.now() - reachedEndAt >= 700) finish();
+        } else {
+          reachedEndAt = 0;
+        }
+      }, 200);
+      job.signal.addEventListener("abort", () => {
+        if (settled) return;
+        settled = true;
+        clearInterval(errCheck);
+        reject(new DOMException("cancelled", "AbortError"));
+      }, { once: true });
     });
 
     recorder.start(1000);
@@ -127,9 +154,35 @@ export async function exportVideo(job: ExportJob): Promise<ExportResult> {
     // the stop event can be dispatched immediately; attaching onstop afterward
     // may miss it and leave the UI stuck at 100% forever.
     const stopped = new Promise<void>((resolve, reject) => {
-      recorder.addEventListener("stop", () => resolve(), { once: true });
-      recorder.addEventListener("error", () => reject(new Error("تعذّر إنهاء ملف الفيديو بعد اكتمال التسجيل")), { once: true });
-      recorder.stop();
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(fallback);
+        resolve();
+      };
+      recorder.addEventListener("stop", finish, { once: true });
+      recorder.addEventListener("error", () => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(fallback);
+        reject(new Error("تعذّر إنهاء ملف الفيديو بعد اكتمال التسجيل"));
+      }, { once: true });
+      // Some Android WebView builds switch to inactive without delivering stop.
+      const fallback = window.setTimeout(() => {
+        if (recorder.state === "inactive") finish();
+        else {
+          settled = true;
+          reject(new Error("انتهى التصوير لكن المتصفح لم يُنهِ ملف الفيديو. جرّب دقة 720p وأعد المحاولة."));
+        }
+      }, 4000);
+      try {
+        recorder.requestData();
+        recorder.stop();
+      } catch (e) {
+        window.clearTimeout(fallback);
+        reject(e instanceof Error ? e : new Error("تعذّر إيقاف تسجيل الفيديو"));
+      }
     });
     await stopped;
     cleanup();
