@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Database, Info, ShieldCheck } from "lucide-react";
+import { Database, Info, ShieldCheck, Trash2, Headphones } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader, RangeField, Segmented, ToggleRow } from "@/components/shared/ui-kit";
@@ -7,6 +7,7 @@ import { checkOfflineQuranIntegrity, getDownloadedChapterIds } from "@/lib/offli
 import { idbClear } from "@/lib/persistence/idb";
 import { useReciters } from "@/lib/quran/hooks";
 import { formatBytes, toArabicDigits } from "@/lib/quran/format";
+import { deleteDownloadedAudio, listDownloadedAudio } from "@/lib/audio/offlineAudio";
 import { ASPECTS, RESOLUTIONS, type AspectRatio, type Resolution } from "@/lib/rendering/design";
 import { DEFAULT_SETTINGS, updateSettings, useSettings } from "@/lib/settings";
 
@@ -16,6 +17,7 @@ export default function SettingsPage() {
   const { data: reciters } = useReciters();
   const usage = useQuery({ queryKey: ["storage-estimate"], queryFn: () => navigator.storage?.estimate?.() ?? Promise.resolve(null) });
   const integrity = useQuery({ queryKey: ["integrity", "local"], queryFn: checkOfflineQuranIntegrity, enabled: false });
+  const audioDownloads = useQuery({ queryKey: ["offline-quran-audio"], queryFn: listDownloadedAudio, staleTime: 0 });
   const downloaded = useQuery({
     queryKey: ["offline-quran-chapters"],
     queryFn: getDownloadedChapterIds,
@@ -84,6 +86,37 @@ export default function SettingsPage() {
           {downloaded.isFetching ? "جارٍ التحديث…" : "تحديث قائمة السور المحفوظة"}
         </Button>
         <p className="text-xs text-ink-muted">افتح أي سورة مع توفر الإنترنت لتنزيلها تلقائياً. لا يتم تنزيل بقية السور. تبقى النسخة المحلية متاحة عند انقطاع الاتصال، وتُحدّث عند الاتصال وفق آلية المصدر.</p>
+      </section>
+      <section className={card}>
+        <h2 className="flex items-center gap-2 font-semibold"><Headphones className="size-4 text-gold" /> التلاوات الصوتية المحمّلة</h2>
+        <p className="text-sm text-ink-soft">كل ملف مرتبط بسورة وقارئ محدد، ويمكن تشغيله دون إنترنت. حذف الصوت لا يحذف نص السورة.</p>
+        {audioDownloads.isLoading && <p className="text-sm text-ink-soft">جارٍ قراءة الملفات الصوتية…</p>}
+        {audioDownloads.data && (
+          <>
+            <p className="text-sm font-semibold">عدد الملفات: {toArabicDigits(audioDownloads.data.length)} — المساحة المستخدمة: {formatBytes(audioDownloads.data.reduce((sum, item) => sum + item.size, 0))}</p>
+            {audioDownloads.data.length === 0 ? <p className="text-sm text-ink-muted">لا توجد تلاوات محمّلة حالياً.</p> : (
+              <div className="space-y-2">
+                {audioDownloads.data.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-line bg-navy-800 p-3" data-testid={`downloaded-audio-${item.chapterId}-${item.reciterId}`}>
+                    <div className="min-w-0 space-y-1">
+                      <p className="truncate font-semibold">سورة {item.chapterName}</p>
+                      <p className="truncate text-xs text-ink-soft">القارئ: {item.reciterName}</p>
+                      <p className="text-xs text-ink-muted">الحجم: {formatBytes(item.size)} · {new Date(item.downloadedAt).toLocaleDateString("ar-IQ")}</p>
+                    </div>
+                    <Button variant="ghost" size="icon" aria-label={`حذف صوت سورة ${item.chapterName}`} onClick={async () => {
+                      if (!confirm(`حذف صوت سورة ${item.chapterName} للقارئ ${item.reciterName}؟`)) return;
+                      await deleteDownloadedAudio(item.id);
+                      await audioDownloads.refetch();
+                    }} data-testid={`delete-audio-${item.chapterId}-${item.reciterId}`}><Trash2 className="size-4 text-danger" /></Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+        <Button variant="outline" onClick={() => void audioDownloads.refetch()} disabled={audioDownloads.isFetching}>
+          {audioDownloads.isFetching ? "جارٍ التحديث…" : "تحديث قائمة التلاوات"}
+        </Button>
       </section>
       <section className={card}>
         <h2 className="flex items-center gap-2 font-semibold"><ShieldCheck className="size-4 text-gold" /> سلامة بيانات القرآن</h2>
