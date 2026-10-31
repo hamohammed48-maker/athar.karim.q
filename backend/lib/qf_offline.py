@@ -20,7 +20,7 @@ EXPECTED_CHAPTERS = 114
 EXPECTED_VERSES = 6236
 EXPECTED_WORDS = 83665
 MUSHAF_ID = 4
-TRANSLATION_MATCH = "saheeh international"
+TRANSLATION_MATCH = "m.a.s. abdel haleem"
 SYNC_INTERVAL = timedelta(days=6)
 
 
@@ -194,7 +194,7 @@ def _build_bundle(
         if len(words_raw) != EXPECTED_WORDS or len(mushaf_words) < EXPECTED_WORDS:
             raise QuranFoundationError("Uthmani word data is incomplete.")
         if len(translations_by_key) != EXPECTED_VERSES:
-            raise QuranFoundationError("Saheeh International translation snapshot is incomplete.")
+            raise QuranFoundationError("Selected translation snapshot is incomplete.")
 
     page_for_verse: dict[int, int] = {}
     for row in mushaf_records:
@@ -225,7 +225,7 @@ def _build_bundle(
         verse_key = str(row["verse_key"])
         translation_text = _clean_translation(translations_by_key.get(verse_key, ""))
         if not translation_text:
-            raise QuranFoundationError(f"Missing Saheeh International translation for {verse_key}.")
+            raise QuranFoundationError(f"Missing selected translation for {verse_key}.")
         verse_id = int(row["id"])
         chapter_id = int(row["chapter_id"])
         verses.append({
@@ -277,13 +277,13 @@ def _build_bundle(
         "generated_at": now,
         "source": {
             "quran": "Quran Foundation Content Sync — quran_core:1 and mushafs:4",
-            "translation": "Saheeh International",
+            "translation": str(translation_info.get("name") or "M.A.S. Abdel Haleem"),
             "attribution": "Quran data provided by Quran Foundation.",
         },
         "translation": {
             "resource_id": int(translation_info["id"]),
-            "name": str(translation_info.get("name") or "Saheeh International"),
-            "author_name": str(translation_info.get("author_name") or "Saheeh International"),
+            "name": str(translation_info.get("name") or "M.A.S. Abdel Haleem"),
+            "author_name": str(translation_info.get("author_name") or "M.A.S. Abdel Haleem"),
         },
         "sync": {
             "resources_filter": resources_filter,
@@ -393,6 +393,7 @@ def get_offline_quran_bundle(known_version: str | None = None, chapter_id: int |
                         translation_info,
                         resources_filter,
                         token,
+                        validate=(environment == "production"),
                     )
                 _CACHE_LAST_SYNC = now
             finally:
