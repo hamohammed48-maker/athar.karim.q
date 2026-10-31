@@ -377,3 +377,27 @@ Workflow run: [41156887862](https://github.com/hamohammed48-maker/athar.karim.q/
 ### حماية المستودع
 - آخر فرعين معروفين: `main` و`backup/pre-offline-apk-2026-10-31` فقط.
 - SHA النسخة الاحتياطية لم يتغير: `bacb20920dc96d75b3b43624b9cddf81a079b9a9`.
+
+
+## 9. تحديث اختبارات Python وربط API في Android — 2026-10-31
+
+- تشغيل Workflow رقم 12 `41158051568` على commit `6ec6f3638886873bb95c0252c7a96664bb3ffe35`:
+  - نجح إعداد Node 22 وJava 21 وAndroid SDK وYarn.
+  - نجح تثبيت الاعتماديات.
+  - نجح اختبار Python الخاص بتحويل حزمة Content Sync والتحقق من النص والترجمة والكلمات.
+  - نجح `yarn build`.
+  - نجح إنشاء/مزامنة Android عبر Capacitor.
+  - Gradle `assembleDebug` كان قيد التنفيذ عند آخر تحقق؛ لم يُؤكد Artifact لهذا التشغيل بعد.
+- أُضيف `frontend/src/lib/apiConfig.ts` لدعم عنوان API مطلق داخل Android WebView عبر `VITE_API_BASE_URL`، مع إبقاء `/api` الافتراضي للموقع والتطوير.
+- أُضيفت قراءة متغير GitHub Actions العام `ANDROID_API_BASE_URL` أثناء بناء APK. هذا المتغير ليس سراً، وقيمته يجب أن تكون عنوان Backend العام مع لاحقة `/api`.
+- يجب إضافة `https://localhost` إلى `CORS_ORIGINS` في بيئة Backend حتى يسمح الخادم لواجهة Capacitor المحلية بطلب API.
+- Workflow رقم 14 `41158212627` على commit `07368cde3a5c4dae612d2e0627928623ca458214` ينتظر دوره ليبني نسخة تشمل إعداد API المطلق.
+- لم يتم توفير عنوان Backend العام بعد، لذلك لا يمكن اعتماد APK متصل بالبيانات قبل تحديده وإضافته إلى `ANDROID_API_BASE_URL`.
+- بيانات اعتماد Content Sync المطلوبة على الخادم ما زالت غير مؤكدة الإعداد: `QF_CLIENT_ID`, `QF_CLIENT_SECRET`, `QF_ENV=production`.
+- لم يتم اختبار التنزيل الفعلي أو القراءة دون اتصال بعد؛ الاختبار الحالي يثبت فقط نجاح التحويل البرمجي ونجاح اختبارات المحوّل.
+
+### المطلوب قبل اختبار APK المتصل بالبيانات
+1. تحديد عنوان API العام الكامل، مثال شكلي: `https://api.example.com/api`، ثم إضافته كـ Repository Variable باسم `ANDROID_API_BASE_URL`.
+2. ضبط CORS في Backend للسماح بـ `https://localhost`.
+3. ضبط بيانات اعتماد Quran Foundation على Backend فقط.
+4. إعادة بناء APK واختبار التنزيل الأول ثم فصل الإنترنت وإعادة تشغيل الجهاز.
