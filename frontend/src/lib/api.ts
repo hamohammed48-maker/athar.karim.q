@@ -9,7 +9,7 @@ export class ApiError extends Error {
   body: unknown;
 
   constructor(status: number, body: unknown) {
-    super(\`request failed with \${status}\`);
+    super("request failed with " + status);
     this.name = "ApiError";
     this.status = status;
     this.body = body;
@@ -30,7 +30,7 @@ async function offlineGet<T>(path: string): Promise<T | undefined> {
 async function request<T>(method: string, path: string, body?: JsonBody): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(\`\${BASE}\${path}\`, {
+    res = await fetch(BASE + path, {
       method,
       headers: body === undefined ? undefined : { "Content-Type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -44,7 +44,7 @@ async function request<T>(method: string, path: string, body?: JsonBody): Promis
   }
 
   if (!res.ok) {
-    if (method === "GET" && (res.status >= 500 || res.status === 404)) {
+    if (method === "GET" && (res.status >= 500 || res.status === 404 || res.status === 401 || res.status === 403)) {
       const local = await offlineGet<T>(path);
       if (local !== undefined) return local;
     }

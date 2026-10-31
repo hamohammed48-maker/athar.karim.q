@@ -73,18 +73,17 @@ jobs:
           python -m py_compile backend/scripts/export_offline_content.py
           python -m unittest discover -s backend/tests -p "test_offline_export.py"
 
-      - name: Generate licensed offline Quran bundle
-        if: ${{ secrets.QF_CLIENT_ID != '' && secrets.QF_CLIENT_SECRET != '' }}
+      - name: Generate licensed offline Quran bundle when credentials are configured
         env:
           QF_CLIENT_ID: ${{ secrets.QF_CLIENT_ID }}
           QF_CLIENT_SECRET: ${{ secrets.QF_CLIENT_SECRET }}
           QF_ENV: production
         run: |
-          python backend/scripts/export_offline_content.py --output frontend/public/offline/quran-content.json
-
-      - name: Note that offline content credentials are not configured
-        if: ${{ secrets.QF_CLIENT_ID == '' || secrets.QF_CLIENT_SECRET == '' }}
-        run: echo "::warning::QF Content Sync credentials are not configured; this APK will contain the app shell but no full offline Quran bundle."
+          if [ -n "$QF_CLIENT_ID" ] && [ -n "$QF_CLIENT_SECRET" ]; then
+            python backend/scripts/export_offline_content.py --output frontend/public/offline/quran-content.json
+          else
+            echo "::warning::QF Content Sync credentials are not configured; this APK will contain the app shell but no full offline Quran bundle."
+          fi
 
       - name: Build web application
         working-directory: frontend
