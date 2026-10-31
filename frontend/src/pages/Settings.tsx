@@ -9,7 +9,6 @@ import { useReciters } from "@/lib/quran/hooks";
 import { formatBytes, toArabicDigits } from "@/lib/quran/format";
 import { ASPECTS, RESOLUTIONS, type AspectRatio, type Resolution } from "@/lib/rendering/design";
 import { DEFAULT_SETTINGS, updateSettings, useSettings } from "@/lib/settings";
-import type { IntegrityReport } from "@/types/quran";
 
 export default function SettingsPage() {
   const s = useSettings();
