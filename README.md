@@ -10,7 +10,6 @@
 
 - Node.js 20 أو أحدث مع Corepack وYarn.
 - Python 3.11 أو أحدث.
-- MongoDB محلي أو MongoDB Atlas.
 - اتصال إنترنت من الخادم للوصول إلى Quran.com API v4 وQDC audio API.
 - لا يلزم مفتاح API لمصادر القرآن العامة المستخدمة حالياً.
 
@@ -51,15 +50,7 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-أنشئ ملف `.env` داخل مجلد `backend` استناداً إلى `backend/.env.example`:
-
-```env
-MONGO_URL=mongodb://127.0.0.1:27017
-DB_NAME=athar_kareem
-CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
-```
-
-عند استخدام MongoDB Atlas، ضع connection string الخاص بك في `MONGO_URL`. لا تضعه في GitHub أو في ملفات الواجهة. في الإنتاج حدّد `CORS_ORIGINS` بعنوان الواجهة الفعلي فقط.
+أنشئ ملف `.env` داخل مجلد `backend` استناداً إلى `backend/.env.example`، وضع فيه `CORS_ORIGINS` حسب أصل الواجهة. عند استخدام Quran Foundation Content Sync، أضف `QF_CLIENT_ID` و`QF_CLIENT_SECRET` و`QF_ENV=production` إلى إعدادات الاستضافة الآمنة فقط؛ لا تضعها في Git أو APK.
 
 شغّل الخلفية:
 
@@ -103,8 +94,7 @@ yarn preview --host 0.0.0.0
 1. يقدم ملفات `frontend/dist` عبر HTTPS.
 2. يمرّر طلبات `/api/*` إلى خدمة FastAPI على المنفذ الداخلي `8001`.
 3. يعيد `index.html` لمسارات الواجهة غير التابعة إلى API، حتى تعمل مسارات React Router عند فتحها مباشرة.
-4. يشغّل MongoDB محلياً أو يستخدم MongoDB Atlas.
-5. يضبط `MONGO_URL` و`DB_NAME` و`CORS_ORIGINS` ضمن بيئة الخادم، وليس في ملفات الواجهة أو المستودع.
+5. يضبط `CORS_ORIGINS` وبيانات اعتماد Quran Foundation (إن لزمت) ضمن إعدادات الخادم الآمنة فقط.
 
 **مهم:** proxy الموجود في `frontend/vite.config.ts` خاص بخادم التطوير فقط، ولا يمثل إعداد reverse proxy للإنتاج. لا تستخدم `vite preview` كخادم إنتاج دائم.
 
@@ -131,9 +121,7 @@ pytest
 
 - لا ترفع `backend/.env` أو كلمات المرور أو مفاتيح الاتصال إلى Git.
 - استخدم `backend/.env.example` قالباً خالياً من الأسرار.
-- لا تفتح MongoDB للعامة؛ اسمح بالاتصال من خادم التطبيق فقط.
 - فعّل HTTPS واضبط CORS على نطاق الواجهة الفعلي.
-- احتفظ بنسخ احتياطية من MongoDB وفق سياسة الاحتفاظ المناسبة.
 - لا تعدّل نص القرآن المخزن؛ التطبيق يحتفظ بالنص كما يرد من Quran.com ويستخدم حقلاً منفصلاً للتطبيع والبحث.
 
 ## ملاحظات المنتج
