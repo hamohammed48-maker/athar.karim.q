@@ -1,4 +1,7 @@
 import { useMemo, useRef, useState } from "react";
+import { Capacitor } from "@capacitor/core";
+import { Directory, Filesystem } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
 import { AlertTriangle, CheckCircle2, Download, Loader2, Share2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RangeField, Segmented } from "@/components/shared/ui-kit";
@@ -30,6 +33,8 @@ export function StepExport({ design, setDesign, verses, names, timeline, timelin
   const [err, setErr] = useState<string | null>(null);
   const [result, setResult] = useState<ExportResult | null>(null);
   const [verified, setVerified] = useState<string | null>(null);
+  const [fileAction, setFileAction] = useState<"idle" | "saving" | "sharing">("idle");
+  const [fileMessage, setFileMessage] = useState<string | null>(null);
   const abort = useRef<AbortController | null>(null);
   const res = RESOLUTIONS.find((r) => r.id === design.export.resolution) ?? RESOLUTIONS[1];
   const dims = dimensions(design.aspect, res.short);
@@ -53,12 +58,62 @@ export function StepExport({ design, setDesign, verses, names, timeline, timelin
   };
 
   const fileName = `athar-kareem-${projectName.replace(/[^\p{L}\p{N}]+/gu, "-").slice(0, 40)}.${result?.ext ?? support.ext ?? "webm"}`;
-  const share = async () => {
-    if (!result) return;
-    const file = new File([result.blob], fileName, { type: result.mime });
-    if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: "أثر كريم" }).catch(() => undefined);
+  const saveVideo = async () => {
+    if (!result || fileAction !== "idle") return;
+    setFileAction("saving");
+    setFileMessage(null);
+    try {
+      if (Capacitor.isNativePlatform()) {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onerror = () => reject(new Error("تعذّر تجهيز ملف الفيديو"));
+          reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+          reader.readAsDataURL(result.blob);
+        });
+        const saved = await Filesystem.writeFile({ path: fileName, data: base64, directory: Directory.Documents, recursive: true });
+        setFileMessage("تم حفظ الفيديو في مجلد Documents على جهازك.");
+        return saved.uri;
+      }
+      const link = document.createElement("a");
+      link.href = result.url;
+      link.download = fileName;
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setFileMessage("بدأ تنزيل الفيديو.");
+    } catch (e) {
+      setFileMessage(e instanceof Error ? e.message : "تعذّر حفظ الفيديو");
+    } finally {
+      setFileAction("idle");
+    }
   };
-  const canShare = !!result && typeof navigator.canShare === "function";
+  const share = async () => {
+    if (!result || fileAction !== "idle") return;
+    setFileAction("sharing");
+    setFileMessage(null);
+    try {
+      if (Capacitor.isNativePlatform()) {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onerror = () => reject(new Error("تعذّر تجهيز ملف الفيديو"));
+          reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+          reader.readAsDataURL(result.blob);
+        });
+        const saved = await Filesystem.writeFile({ path: fileName, data: base64, directory: Directory.Cache, recursive: true });
+        await Share.share({ title: "أثر كريم", files: [saved.uri], dialogTitle: "مشاركة الفيديو" });
+      } else {
+        const file = new File([result.blob], fileName, { type: result.mime });
+        if (!navigator.canShare?.({ files: [file] })) throw new Error("المشاركة غير مدعومة في هذا المتصفح");
+        await navigator.share({ files: [file], title: "أثر كريم" });
+      }
+    } catch (e) {
+      if ((e as Error)?.name !== "AbortError") setFileMessage(e instanceof Error ? e.message : "تعذّرت مشاركة الفيديو");
+    } finally {
+      setFileAction("idle");
+    }
+  };
+  const canShare = !!result && (Capacitor.isNativePlatform() || typeof navigator.share === "function");
 
   return (
     <div className="space-y-6" data-testid="studio-step-export">
@@ -108,11 +163,14 @@ export function StepExport({ design, setDesign, verses, names, timeline, timelin
             onError={() => setVerified("تعذّر تشغيل الملف في هذا المتصفح")} />
           {verified && <p className="text-xs text-ink-soft" data-testid="studio-export-verified">تحقق المشغّل من الملف: <span dir="ltr">{verified}</span></p>}
           <div className="flex flex-wrap gap-2">
-            <a href={result.url} download={fileName} className="inline-flex h-11 items-center gap-2 rounded-lg bg-action px-5 text-white hover:bg-action-hover" data-testid="studio-download-video-btn">
-              <Download className="size-4" /> تنزيل الفيديو
-            </a>
-            {canShare && <Button variant="outline" className="h-11" onClick={share} data-testid="studio-share-video-btn"><Share2 className="size-4" /> مشاركة</Button>}
+            <Button className="h-11" disabled={fileAction !== "idle"} onClick={() => void saveVideo()} data-testid="studio-download-video-btn">
+              {fileAction === "saving" ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />} {fileAction === "saving" ? "جارٍ الحفظ…" : "تنزيل الفيديو"}
+            </Button>
+            {canShare && <Button variant="outline" className="h-11" disabled={fileAction !== "idle"} onClick={() => void share()} data-testid="studio-share-video-btn">
+              {fileAction === "sharing" ? <Loader2 className="size-4 animate-spin" /> : <Share2 className="size-4" />} مشاركة
+            </Button>}
           </div>
+          {fileMessage && <p className="text-sm text-ink-soft" role="status">{fileMessage}</p>}
         </div>
       )}
     </div>
