@@ -4,7 +4,6 @@ const config: CapacitorConfig = {
   appId: "com.atharkareem.app",
   appName: "أثر كريم",
   webDir: "dist",
-  bundledWebRuntime: false,
   android: {
     allowMixedContent: false,
   },
