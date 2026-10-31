@@ -371,8 +371,17 @@ def get_offline_quran_bundle(known_version: str | None = None, chapter_id: int |
                         snapshot_url = mutation.get("snapshot_url")
                         if snapshot_url and group and resource_id is not None:
                             snapshots[f"{group}:{resource_id}"] = client.get(snapshot_url)
-                    if required - set(snapshots):
-                        raise QuranFoundationError("Content Sync bootstrap did not return all required public resources.")
+                    missing = sorted(required - set(snapshots))
+                    if missing:
+                        if environment == "prelive" and "quran_core:1" in missing:
+                            raise QuranFoundationError(
+                                "بيئة Quran Foundation Pre-live لا توفر المورد الكامل quran_core:1؛ "
+                                "لذلك لا يمكن إنشاء حزمة قرآن أوفلاين منها. يلزم تفعيل Production "
+                                "لتحميل القرآن الكامل عبر Content Sync."
+                            )
+                        raise QuranFoundationError(
+                            "Content Sync bootstrap لم يُرجع الموارد المطلوبة: " + ", ".join(missing)
+                        )
                 else:
                     mutations, token = _sync_pages(
                         client, resources_filter, _CACHE_BUNDLE["sync"]["next_sync_token"]
