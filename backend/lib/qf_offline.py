@@ -132,6 +132,7 @@ def _build_bundle(
     translation_info: dict,
     resources_filter: str,
     sync_token: str,
+    validate: bool = True,
 ) -> dict:
     core_records = core.get("records", [])
     mushaf_records = mushaf.get("records", [])
@@ -271,8 +272,22 @@ def _build_bundle(
         "reciters": [],
         "audio": [],
     }
-    _validate_bundle(bundle)
+    if validate:
+        _validate_bundle(bundle)
     return bundle
+
+
+def _build_bundle_for_test(
+    core: dict,
+    mushaf: dict,
+    translation: dict,
+    translation_info: dict,
+    resources_filter: str,
+    sync_token: str,
+) -> dict:
+    return _build_bundle(
+        core, mushaf, translation, translation_info, resources_filter, sync_token, validate=False
+    )
 
 
 def _validate_bundle(bundle: dict) -> None:
