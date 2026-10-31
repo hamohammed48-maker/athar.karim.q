@@ -101,12 +101,15 @@ export async function checkOfflineQuranIntegrity() {
   const chapters = await getDownloadedChapters();
   const issues: string[] = [];
   let versesCount = 0;
+  if (!chapters.length) issues.push("لا توجد سور محفوظة للفحص.");
   for (const item of chapters) {
     const expected = item.chapter.verses_count;
     if (item.verses.length !== expected) {
       issues.push(`سورة ${item.chapter.id}: عدد الآيات ${item.verses.length}/${expected}`);
     }
     const seen = new Set<string>();
+    const numbers = item.verses.map((verse) => verse.number).sort((a, b) => a - b);
+    if (numbers.some((number, index) => number !== index + 1)) issues.push(`سورة ${item.chapter.id}: تسلسل أرقام الآيات غير مكتمل.`);
     for (const verse of item.verses) {
       versesCount += 1;
       if (seen.has(verse.key)) issues.push(`معرّف مكرر ${verse.key}`);
@@ -118,7 +121,7 @@ export async function checkOfflineQuranIntegrity() {
     }
   }
   return {
-    ok: issues.length === 0 && chapters.length > 0,
+    ok: issues.length === 0,
     chapters_count: chapters.length,
     expected_chapters: 114,
     cached_chapters: chapters.length,
