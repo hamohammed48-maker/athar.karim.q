@@ -372,23 +372,12 @@ def get_offline_quran_bundle(known_version: str | None = None, chapter_id: int |
                         if snapshot_url and group and resource_id is not None:
                             snapshots[f"{group}:{resource_id}"] = client.get(snapshot_url)
                     missing = required - set(snapshots)
-                    # Pre-live may omit quran_core from bootstrap mutations even though
-                    # its limited test snapshot endpoint is readable. Fetch it directly
-                    # so the app can be tested with the available Al-Fatihah/Al-Baqarah data.
-                    if environment == "prelive" and "quran_core:1" in missing:
-                        try:
-                            snapshots["quran_core:1"] = client.get(
-                                "/api/v4/resources/snapshots/quran_core/1"
-                            )
-                            missing.remove("quran_core:1")
-                        except httpx.HTTPError as exc:
-                            raise QuranFoundationError(
-                                "تعذر جلب عينة quran_core من Pre-live مباشرة: " + str(exc)
-                            ) from exc
                     if missing:
+                        returned = sorted(snapshots)
                         raise QuranFoundationError(
-                            "Content Sync bootstrap لم يُرجع الموارد المطلوبة: "
-                            + ", ".join(sorted(missing))
+                            "موارد Content Sync التي أعادتها Pre-live: "
+                            + (", ".join(returned) if returned else "لا توجد موارد")
+                            + ". الموارد الناقصة: " + ", ".join(sorted(missing))
                         )
                 else:
                     mutations, token = _sync_pages(
