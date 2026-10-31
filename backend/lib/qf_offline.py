@@ -371,16 +371,24 @@ def get_offline_quran_bundle(known_version: str | None = None, chapter_id: int |
                         snapshot_url = mutation.get("snapshot_url")
                         if snapshot_url and group and resource_id is not None:
                             snapshots[f"{group}:{resource_id}"] = client.get(snapshot_url)
-                    missing = sorted(required - set(snapshots))
-                    if missing:
-                        if environment == "prelive" and "quran_core:1" in missing:
-                            raise QuranFoundationError(
-                                "بيئة Quran Foundation Pre-live لا توفر المورد الكامل quran_core:1؛ "
-                                "لذلك لا يمكن إنشاء حزمة قرآن أوفلاين منها. يلزم تفعيل Production "
-                                "لتحميل القرآن الكامل عبر Content Sync."
+                    missing = required - set(snapshots)
+                    # Pre-live may omit quran_core from bootstrap mutations even though
+                    # its limited test snapshot endpoint is readable. Fetch it directly
+                    # so the app can be tested with the available Al-Fatihah/Al-Baqarah data.
+                    if environment == "prelive" and "quran_core:1" in missing:
+                        try:
+                            snapshots["quran_core:1"] = client.get(
+                                "/api/v4/resources/snapshots/quran_core/1"
                             )
+                            missing.remove("quran_core:1")
+                        except httpx.HTTPError as exc:
+                            raise QuranFoundationError(
+                                "تعذر جلب عينة quran_core من Pre-live مباشرة: " + str(exc)
+                            ) from exc
+                    if missing:
                         raise QuranFoundationError(
-                            "Content Sync bootstrap لم يُرجع الموارد المطلوبة: " + ", ".join(missing)
+                            "Content Sync bootstrap لم يُرجع الموارد المطلوبة: "
+                            + ", ".join(sorted(missing))
                         )
                 else:
                     mutations, token = _sync_pages(
