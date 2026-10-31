@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">أثر كريم</string>
+    <string name="title_activity_main">أثر كريم</string>
+    <string name="package_name">com.atharkareem.app</string>
+    <string name="custom_url_scheme">com.atharkareem.app</string>
+</resources>
