@@ -4,7 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from lib.qf_offline import _build_bundle, _validate_bundle, QuranFoundationError
+from lib.qf_offline import _build_bundle, _find_saheeh_translation, _validate_bundle, QuranFoundationError
 
 
 class OfflineBundleTransformTests(unittest.TestCase):
@@ -41,6 +41,29 @@ class OfflineBundleTransformTests(unittest.TestCase):
         self.assertEqual(verse["translation"], "In the name of Allah.")
         self.assertEqual(verse["words"], [{"position": 1, "text": "بِسْمِ"}])
         self.assertEqual(bundle["chapters"][0]["pages"], [1, 1])
+
+    def test_translation_lookup_selects_saheeh_international(self):
+        class FakeClient:
+            def get(self, path, params=None):
+                assert path == "resources/translations"
+                return {
+                    "translations": [
+                        {"id": 131, "name": "M.A.S. Abdel Haleem", "author_name": "Abdel Haleem"},
+                        {"id": 20, "name": "Saheeh International", "author_name": "Saheeh International"},
+                    ]
+                }
+
+        selected = _find_saheeh_translation(FakeClient())
+        self.assertEqual(selected["id"], 20)
+        self.assertEqual(selected["name"], "Saheeh International")
+
+    def test_translation_lookup_rejects_missing_saheeh_instead_of_substituting(self):
+        class FakeClient:
+            def get(self, path, params=None):
+                return {"translations": [{"id": 131, "name": "M.A.S. Abdel Haleem"}]}
+
+        with self.assertRaisesRegex(QuranFoundationError, "Saheeh International"):
+            _find_saheeh_translation(FakeClient())
 
     def test_validation_rejects_incomplete_quran(self):
         with self.assertRaises(QuranFoundationError):
