@@ -44,9 +44,7 @@ function isNewerVersion(candidate: string, current: string): boolean {
 }
 
 export async function checkAppUpdate(): Promise<AvailableUpdate | null> {
-  if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") {
-    throw new Error("ميزة التحديث متاحة داخل تطبيق أندرويد فقط.");
-  }
+  if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") return null;
   const response = await fetch(
     `https://api.github.com/repos/${OWNER}/${REPOSITORY}/releases/latest`,
     { headers: { Accept: "application/vnd.github+json" }, cache: "no-store" },
