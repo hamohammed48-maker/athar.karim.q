@@ -68,6 +68,13 @@ document.addEventListener("visibilitychange", () => {
 void checkAppUpdate().then((update) => {
   try { localStorage.setItem("athar.appUpdate.available.v1", JSON.stringify(update)); } catch { /* ignore */ }
   window.dispatchEvent(new CustomEvent("athar-app-update", { detail: update }));
+  if (update) {
+    toast("يتوفر تحديث جديد لأثر كريم", {
+      description: "الإصدار " + update.version + " جاهز للتنزيل من صفحة تحديث التطبيق.",
+      action: { label: "عرض", onClick: () => { window.location.href = "/settings#app-update"; } },
+      duration: 10000,
+    });
+  }
 }).catch(() => {
   // Offline launch is expected; manual checking remains available in Settings.
 });
