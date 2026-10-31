@@ -47,6 +47,8 @@ def test_invalid_references(client):
 
 
 def test_search_ignores_diacritics(client):
+    # Search covers chapters already requested by this backend process; the APK searches its own local DB.
+    assert client.get("/quran/chapters/2").status_code == 200
     d = client.get("/quran/search", params={"q": "الصابرين"}).json()
     assert d["total"] > 0
     assert "2:153" in [v["key"] for v in d["results"]]
