@@ -17,14 +17,47 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
-// Trigger a lightweight Content Sync check. It returns metadata only, never Quran text.
+// Check Content Sync at most every six days per installed app.
+// A failed attempt is retried after 12 hours; no Quran text is downloaded by this check.
+const QURAN_SYNC_CHECK_KEY = "athar.quranSync.lastAttemptAt";
+const SIX_DAYS = 6 * 24 * 60 * 60 * 1000;
+const RETRY_AFTER_FAILURE = 12 * 60 * 60 * 1000;
+
 const checkQuranSync = () => {
   if (typeof navigator === "undefined" || !navigator.onLine) return;
-  void fetch(API_BASE_URL + "/offline/status", { cache: "no-store" }).catch(() => undefined);
+  const now = Date.now();
+  let lastAttempt = 0;
+  try {
+    lastAttempt = Number(localStorage.getItem(QURAN_SYNC_CHECK_KEY) || 0);
+  } catch {
+    // Continue with a one-off check if localStorage is unavailable.
+  }
+  if (lastAttempt && now - lastAttempt < SIX_DAYS) return;
+  try {
+    localStorage.setItem(QURAN_SYNC_CHECK_KEY, String(now));
+  } catch {
+    // The request still works without a local attempt marker.
+  }
+  void fetch(API_BASE_URL + "/offline/status", { cache: "no-store" })
+    .then((response) => {
+      if (!response.ok) {
+        try {
+          localStorage.setItem(QURAN_SYNC_CHECK_KEY, String(now - SIX_DAYS + RETRY_AFTER_FAILURE));
+        } catch {
+          // Ignore unavailable localStorage.
+        }
+      }
+    })
+    .catch(() => {
+      try {
+        localStorage.setItem(QURAN_SYNC_CHECK_KEY, String(now - SIX_DAYS + RETRY_AFTER_FAILURE));
+      } catch {
+        // Ignore unavailable localStorage.
+      }
+    });
 };
 checkQuranSync();
 window.addEventListener("online", checkQuranSync);
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") checkQuranSync();
 });
-window.setInterval(checkQuranSync, 12 * 60 * 60 * 1000);
