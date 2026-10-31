@@ -78,17 +78,19 @@ class QuranFoundationClient:
             url = self.api_base + "/" + url_or_path.lstrip("/")
 
         response = None
-        refreshed_after_401 = False
-        for attempt in range(3):
-            response = self.http.get(url, params=params, headers=self.headers)
-            if response.status_code == 401 and not refreshed_after_401:
-                self._authenticate()
-                refreshed_after_401 = True
-                continue
-            if response.status_code != 429 and response.status_code < 500:
+        for auth_attempt in range(2):
+            for retry_attempt in range(3):
+                response = self.http.get(url, params=params, headers=self.headers)
+                if response.status_code == 401:
+                    break
+                if response.status_code != 429 and response.status_code < 500:
+                    break
+                if retry_attempt < 2:
+                    time.sleep(1.5 * (retry_attempt + 1))
+            if response.status_code != 401:
                 break
-            if attempt < 2:
-                time.sleep(1.5 * (attempt + 1))
+            if auth_attempt == 0:
+                self._authenticate()
         response.raise_for_status()
         payload = response.json()
         if isinstance(payload, dict) and payload.get("success") is False:
