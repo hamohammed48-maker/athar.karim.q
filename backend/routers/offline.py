@@ -9,6 +9,19 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/offline", tags=["offline"])
 
 
+@router.get("/status")
+async def offline_status():
+    """Check/sync the Content Sync copy without sending Quran text to the device."""
+    try:
+        return await run_in_threadpool(get_offline_quran_bundle, None, None, True)
+    except QuranFoundationError as exc:
+        logger.warning("offline Quran sync status unavailable: %s", exc)
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("offline Quran sync status failed")
+        raise HTTPException(status_code=502, detail="تعذّر التحقق من تحديث بيانات القرآن حالياً.") from exc
+
+
 @router.get("/chapters/{chapter_id}")
 async def offline_chapter(chapter_id: int):
     """Return only one verified chapter; the full Content Sync copy stays on the backend."""
