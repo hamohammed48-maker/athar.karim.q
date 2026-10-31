@@ -10,7 +10,7 @@ export const useChapters = () =>
 export const useChapter = (n: number | null) =>
   useQuery({
     queryKey: ["chapter", n],
-    queryFn: () => apiGet<ChapterDetail>(`/quran/chapters/${n}`),
+    queryFn: () => apiGet<ChapterDetail>(`/offline/chapters/${n}`),
     enabled: !!n,
     staleTime: DAY,
   });
@@ -56,7 +56,7 @@ export const audioQuery = (reciterId: number, chapter: number) => ({
   retry: 1,
 });
 
-export const useChapterAudio = (reciterId: number | null, chapter: number | null) =>
+export const useChapterAudio = (reciterId: number | null, chapter: number | null) => 
   useQuery({ ...audioQuery(reciterId ?? 0, chapter ?? 0), enabled: !!reciterId && !!chapter });
 
 /** Audio metadata for every chapter touched by a selection (one cached request per chapter). */
