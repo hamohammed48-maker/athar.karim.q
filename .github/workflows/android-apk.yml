@@ -13,7 +13,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: android-apk-main
+  group: android-apk-main-v2
   cancel-in-progress: false
 
 jobs:
@@ -42,13 +42,12 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install Android SDK platform and build tools
         run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          command -v sdkmanager
           yes | sdkmanager --licenses >/dev/null
-          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
 
       - name: Install Yarn Classic
         run: |
