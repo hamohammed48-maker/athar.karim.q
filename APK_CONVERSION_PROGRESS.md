@@ -182,7 +182,33 @@ Commits:
 الخطوة التالية:
 - في بيئة البناء، تثبيت `@capacitor/core` و`@capacitor/android` و`@capacitor/cli` بإصدارات متطابقة من السلسلة 8، ثم تحديث `frontend/yarn.lock` عبر Yarn، وإنشاء `capacitor.config.ts` ومشروع Android، ثم تشغيل build الويب وCapacitor sync وGradle build. لا تُعتبر الدفعة مكتملة قبل نجاح هذه الأوامر والتحقق من تشغيل التطبيق.
 
+### الدفعة 3 — فحص إمكانية البناء عبر GitHub Actions
+**الحالة:** اكتشاف مسار بناء سحابي ممكن؛ لم يُضف Workflow بعد.
+
+ما تم التحقق منه:
+- المسار `.github/workflows` غير موجود على `main` حالياً.
+- لا توجد ملفات Android أو Capacitor بعد.
+- GitHub connector المتاح هنا يدعم قراءة/كتابة المستودع ومراجعة سجلات Actions، لكنه لا يوفر عملية dispatch لتشغيل Workflow يدوياً، ولا يوفر إنشاء ملفات APK الثنائية داخل المستودع.
+- يمكن تجهيز Workflow بناء Android على GitHub Actions لاحقاً، لكن ينبغي أن يأتي بعد تهيئة Capacitor واختبار Vite build، لا أن يكون إجراءً معزولاً ينتج فشلاً متوقعاً.
+
+مراجعة تحديث Capacitor 8 الرسمي:
+- حد Node.js هو 22+.
+- إعدادات Android الدنيا الموصى بها في دليل الترقية: minSdk 24، compileSdk 36، targetSdk 36، Android Gradle Plugin 8.13.0 وGradle 8.14.3، وKotlin 2.2.20 عند استخدام Kotlin.
+- بيئة Android تتطلب Android Studio 2025.2.1 أو أحدث وAndroid SDK API 24+.
+
+القرار:
+- لم أنشئ Workflow شكلياً قبل توفر scaffold Android الذي سيبنيه.
+- لا أغير `frontend/package.json` أو `frontend/yarn.lock` عن طريق تخمين dependency resolution.
+- المطلوب أولاً بيئة تسمح فعلياً بتشغيل Yarn لتحديث lockfile، ثم يمكن استخدام GitHub Actions لتشغيل Android build ونشر APK كـ Artifact.
+
+الاختبارات:
+- تحقق وجود مجلد workflows غير موجود.
+- تحقق غياب Capacitor/Android.
+- لا يوجد تشغيل Actions أو build في هذه الدفعة.
+
+الخطوة التالية: تهيئة Capacitor مع بيئة تثبيت Yarn موثوقة، ثم إعداد Workflow للبناء بعد وجود ملفات Android.
+
 ## 7. آخر نقطة توقف
 آخر تحديث: 2026-10-31
 
-تم التأكد من وجود Yarn lockfile داخل `frontend/` وتصحيح أي افتراض سابق بأنه في جذر المستودع. تمت مراجعة متطلبات Capacitor 8 الرسمية. ما زال تنفيذ Capacitor متوقفاً لأن بيئة الجلسة لا تستطيع جلب المستودع وتشغيل Yarn/Gradle؛ لا توجد تغييرات على كود التطبيق ولا APK. الفرع `main` هو موضع العمل، والنسخة الاحتياطية تبقى محمية دون تعديل.
+`main` هو فرع العمل الوحيد، والنسخة الاحتياطية ما زالت محمية. آخر دفعة فحصت قابلية استخدام GitHub Actions وراجعت متطلبات Android الرسمية. لم تتم إضافة Capacitor أو Workflow أو APK؛ لم تتوفر في هذا الاتصال وسيلة تشغيل Yarn/Gradle أو dispatch. لا توجد تغييرات في كود التطبيق.
