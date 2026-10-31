@@ -178,7 +178,6 @@ Commits:
 - عدم إضافة اعتماديات Capacitor إلى `package.json` قبل تشغيل Yarn في بيئة فعلية وتحديث lockfile بصورة صحيحة.
 - اعتماد Node.js 22+ وCapacitor 8 كهدف أولي، ثم إنشاء Android project بواسطة Capacitor CLI بعد تثبيت الحزم.
 - يلزم أولاً توفير بيئة بناء فعلية (مثل Work/بيئة تطوير متصلة بالمستودع أو جهاز تطوير مع Node 22 وAndroid Studio/SDK) لإتمام هذه الدفعة بأمان.
-
 الخطوة التالية:
 - في بيئة البناء، تثبيت `@capacitor/core` و`@capacitor/android` و`@capacitor/cli` بإصدارات متطابقة من السلسلة 8، ثم تحديث `frontend/yarn.lock` عبر Yarn، وإنشاء `capacitor.config.ts` ومشروع Android، ثم تشغيل build الويب وCapacitor sync وGradle build. لا تُعتبر الدفعة مكتملة قبل نجاح هذه الأوامر والتحقق من تشغيل التطبيق.
 
@@ -358,54 +357,44 @@ Workflow run: [41156887862](https://github.com/hamohammed48-maker/athar.karim.q/
 - `frontend/src/main.tsx`: تشغيل فحص التحديث تلقائياً عند بدء التطبيق إذا كانت هناك نسخة محلية والاتصال متاح.
 - `.github/workflows/android-apk.yml`: إزالة خطوة توليد بيانات QF داخل APK؛ أصبحت تغييرات `backend/**` تشغّل بناء Android.
 
-### الاختبارات وحالة البناء
-- تشغيل APK رقم 10 `41157592183` نجح في بناء APK ورفعه، لكن كان مبنياً على مرحلة سابقة لحزمة محلية ثابتة. سجل التشغيل أظهر أن GitHub Secrets الخاصة بـ QF كانت فارغة، لذلك لم تُضمّن بيانات قرآن داخل APK. لا يُعتمد هذا Artifact كإصدار Offline.
-- تشغيل Workflow رقم 11 `41157852204` بدأ على commit `c3eef89ebafe761849f441a604a0bbd071f3a82b`؛ كان قيد التنفيذ عند آخر تحقق.
-- تشغيل Workflow رقم 12 `41158051568` اكتمل بنجاح: اختبارات Python نجحت، ونجح `yarn build` وGradle ورفع APK Artifact.
-- Artifact رقم `13025372746` حجمه 7,368,233 بايت للأرشيف، مبني على commit `6ec6f3638886873bb95c0252c7a96664bb3ffe35`، ولا يحتوي إعداد API المطلق الذي أضيف بعده؛ لذلك لا يُعتمد كنسخة Android متصلة بالخادم.
-- تشغيل Workflow رقم 14 `41158212627` على commit `07368cde3a5c4dae612d2e0627928623ca458214` بدأ التنفيذ؛ نجح إعداد Node وJava وAndroid SDK، وكانت خطوة Yarn قيد التنفيذ عند آخر تحقق. يتضمن إعداد `VITE_API_BASE_URL`.
-- لم يُجر اختبار تنزيل Content Sync فعلياً لعدم توفر بيانات اعتماد QF على خادم Backend ضمن بيئة العمل الحالية.
-- لم يُختبر وضع الطيران أو إعادة تشغيل الجهاز مع نسخة قرآن محفوظة بعد.
 
-### ما لم يكتمل
-- يلزم إعداد `QF_CLIENT_ID` و`QF_CLIENT_SECRET` و`QF_ENV=production` في متغيرات بيئة خدمة Backend المستضافة. لا ترسل الأسرار داخل المحادثة.
-- بعد إعدادها، نختبر التنزيل الحقيقي ومطابقة النص والترجمة ثم القراءة والبحث دون إنترنت.
-- التلاوات الصوتية وملفات MP3 لا تزال خارج الحزمة المحلية؛ لا يُسمح بتنزيلها أو إعادة توزيعها قبل تدقيق حقوق كل تسجيل.
-- بيانات التوقيتات الصوتية تحتاج إضافة موارد `chapter_recitations` بعد تحديد المورد والقارئ المعتمد.
-- IndexedDB هي المرحلة الأولى؛ لم يُنفذ SQLite/FTS5 بعد.
-- لم يتم اختبار MediaRecorder وAudioContext وتصدير الفيديو على Android WebView.
+### الدفعة 10 — اختيار بنية استضافة Backend منخفضة التكلفة — 2026-10-31
 
-### حماية المستودع
-- آخر فرعين معروفين: `main` و`backup/pre-offline-apk-2026-10-31` فقط.
-- SHA النسخة الاحتياطية لم يتغير: `bacb20920dc96d75b3b43624b9cddf81a079b9a9`.
+**الحالة:** قرار معماري موثق؛ لم يتم إنشاء حسابات أو نشر خدمات بعد.
 
+**القرار المعتمد مبدئياً:**
+- Cloud Run لاستضافة FastAPI الحالي عند الحاجة إلى API متصل، بنمط request-based وmin instances = 0 وحدود موارد منخفضة؛ مع التنبيه إلى أنه يتطلب Billing Account وأن التجاوزات قد تُحاسب.
+- Cloudflare R2 Standard للتخزين الدائم لبيانات Content Sync وحالة المزامنة وملفات السور. الحصة المجانية المنشورة 10 GB-month و1 مليون Class A و10 ملايين Class B شهرياً، مع نقل بيانات للخارج دون رسوم وفق شروط R2.
+- Cloudflare Worker Free كواجهة خفيفة للقراءة من R2، وليس لمعالجة snapshots الثقيلة. حد الخطة المجانية المنشور 100,000 طلب يومياً و10 ms CPU لكل طلب.
+- GitHub Actions لتنفيذ مزامنة Content Sync الدورية ومعالجة البيانات وتقسيمها ورفعها إلى R2. تشغيل standard runners مجاني للمستودعات العامة؛ المستودعات الخاصة تعتمد على حصة الخطة.
+- لا تُفعّل خطة مدفوعة ولا يُسمح بتجاوزات مدفوعة دون موافقة المستخدم.
 
-## 9. تحديث اختبارات Python وربط API في Android — 2026-10-31
+**تصميم التنزيل سورة بسورة:**
+- backend يحتفظ بنسخة Content Sync متزامنة في R2.
+- ينشأ فهرس صغير للسور وملف مستقل لكل سورة من 1 إلى 114.
+- التطبيق ينزّل السورة المطلوبة فقط ويخزنها منفصلة في IndexedDB.
+- تحديثات التطبيق تفحص إصدارات السور المحفوظة ولا تعيد تنزيل غير المتغير.
+- تنزيل جميع السور يبقى اختيارياً.
+- bootstrap الأول من Quran Foundation قد يتطلب جلب snapshots كاملة للموارد المرجعية على backend؛ هذا لا يعني إرسال القرآن كاملاً إلى الهاتف. تتم التجزئة على backend ثم يرسل ملف السورة المطلوبة فقط.
 
-- تشغيل Workflow رقم 12 `41158051568` على commit `6ec6f3638886873bb95c0252c7a96664bb3ffe35`:
-  - نجح إعداد Node 22 وJava 21 وAndroid SDK وYarn.
-  - نجح تثبيت الاعتماديات.
-  - نجح اختبار Python الخاص بتحويل حزمة Content Sync والتحقق من النص والترجمة والكلمات.
-  - نجح `yarn build`.
-  - نجح إنشاء/مزامنة Android عبر Capacitor.
-  - Gradle `assembleDebug` كان قيد التنفيذ عند آخر تحقق؛ لم يُؤكد Artifact لهذا التشغيل بعد.
-- أُضيف `frontend/src/lib/apiConfig.ts` لدعم عنوان API مطلق داخل Android WebView عبر `VITE_API_BASE_URL`، مع إبقاء `/api` الافتراضي للموقع والتطوير.
-- أُضيفت قراءة متغير GitHub Actions العام `ANDROID_API_BASE_URL` أثناء بناء APK. هذا المتغير ليس سراً، وقيمته يجب أن تكون عنوان Backend العام مع لاحقة `/api`.
-- يجب إضافة `https://localhost` إلى `CORS_ORIGINS` في بيئة Backend حتى يسمح الخادم لواجهة Capacitor المحلية بطلب API.
-- Workflow رقم 14 `41158212627` على commit `07368cde3a5c4dae612d2e0627928623ca458214` ينتظر دوره ليبني نسخة تشمل إعداد API المطلق.
-- لم يتم توفير عنوان Backend العام بعد، لذلك لا يمكن اعتماد APK متصل بالبيانات قبل تحديده وإضافته إلى `ANDROID_API_BASE_URL`.
-- بيانات اعتماد Content Sync المطلوبة على الخادم ما زالت غير مؤكدة الإعداد: `QF_CLIENT_ID`, `QF_CLIENT_SECRET`, `QF_ENV=production`.
-- لم يتم اختبار التنزيل الفعلي أو القراءة دون اتصال بعد؛ الاختبار الحالي يثبت فقط نجاح التحويل البرمجي ونجاح اختبارات المحوّل.
+**مصادر رسمية تمت مراجعتها:**
+- شروط Quran Foundation وContent Sync: https://api-docs.quran.com/legal/developer-terms/ وhttps://api-docs.quran.com/docs/tutorials/content-sync/getting-started/
+- Cloud Run pricing/free tier: https://cloud.google.com/run/pricing
+- Cloudflare Workers limits/pricing: https://developers.cloudflare.com/workers/platform/limits/ وhttps://developers.cloudflare.com/workers/platform/pricing/
+- R2 pricing/get started: https://developers.cloudflare.com/r2/pricing/ وhttps://developers.cloudflare.com/r2/get-started/
+- GitHub Actions billing: https://docs.github.com/en/billing/concepts/product-billing/github-actions
 
-### المطلوب قبل اختبار APK المتصل بالبيانات
-1. تحديد عنوان API العام الكامل، مثال شكلي: `https://api.example.com/api`، ثم إضافته كـ Repository Variable باسم `ANDROID_API_BASE_URL`.
-2. ضبط CORS في Backend للسماح بـ `https://localhost`.
-3. ضبط بيانات اعتماد Quran Foundation على Backend فقط.
-4. إعادة بناء APK واختبار التنزيل الأول ثم فصل الإنترنت وإعادة تشغيل الجهاز.
+**القيود التي يجب إظهارها للمستخدم:**
+- Cloud Run يتطلب Billing Account؛ الحصة المجانية ليست ضماناً ضد أي رسوم عند التجاوز.
+- تفعيل R2 يتطلب إكمال checkout للاشتراك؛ الاستخدام ضمن الحصة المجانية تكون تكلفته صفر، والزيادة تخضع للتسعير.
+- لم تُنشأ حسابات Cloudflare أو Google Cloud ولم تُنشأ R2 bucket أو Worker أو Cloud Run service.
+- لم تُضف أي بيانات اعتماد أو أسرار إلى GitHub.
+- لم يُنفذ بعد كود تنزيل سورة بسورة؛ الكود الحالي ما زال يعتمد على حزمة واحدة كاملة في IndexedDB، وسيُستبدل تدريجياً بعد تجهيز خدمة per-chapter واختبارها.
 
+**حالة GitHub وقت القرار:**
+- main قبل هذه الدفعة: 7028696caa45c101279e1863c00f001170931e16.
+- الفروع الظاهرة: main وbackup/pre-offline-apk-2026-10-31 فقط.
+- النسخة الاحتياطية محمية على SHA bacb20920dc96d75b3b43624b9cddf81a079b9a9.
+- آخر Android Workflow run 41158212627 نجح في جميع الخطوات، لكنه حذّر من غياب Repository Variable ANDROID_API_BASE_URL؛ لذلك لا يُعتمد APK الناتج كنسخة تتصل بBackend خارجي.
 
-### تحديث نتيجة البناء — 2026-10-31
-- Workflow `41158051568`: الحالة **نجاح**؛ اكتملت جميع الخطوات، بما فيها Python tests وVite build وGradle ورفع APK.
-- Artifact: `13025372746`, archive size `7,368,233` bytes, SHA-256 `51c729b65d497a44a89cc396b88246e2288211b90451c0d5f7c56369a1523816`.
-- هذا Artifact بُني قبل إضافة عنوان API المطلق للـ WebView، لذا لا يُستخدم لاختبار اتصال Backend. النسخة التالية هي Workflow `41158212627`.
-- لم يُجر اختبار Content Sync فعلي لغياب بيانات اعتماد QF في بيئة Backend، ولم يُحدد عنوان API العام بعد.
+**الخطوة التالية:** إنشاء حساب Cloudflare مجاني وتفعيل R2 ضمن الحصة المجانية، ثم إعداد bucket وWorker. بعد ذلك تجهيز GitHub Actions Secrets (دون إرسال القيم في المحادثة)، وتنفيذ مزامنة Content Sync إلى R2 ثم بناء تنزيل السور المنفصل. استضافة FastAPI على Cloud Run تأتي بعد إعداد الحساب ومراجعة ميزانية الخدمة.
