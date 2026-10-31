@@ -71,7 +71,7 @@ async def _get(url: str, params: dict | None = None) -> dict:
 def _clean_translation(html: str) -> str:
     text = re.sub(r"<sup[^>]*>.*?</sup>", "", html or "", flags=re.S)
     text = re.sub(r"<[^>]+>", "", text)
-    return re.sub(r"\\s+", " ", text).strip()
+    return re.sub(r"\s+", " ", text).strip()
 
 
 async def get_chapters() -> list[dict]:
