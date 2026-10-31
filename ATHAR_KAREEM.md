@@ -9,7 +9,7 @@ Arabic-first (RTL, dark) Quran reader + Quranic video studio. Two primary sectio
 
 | Layer | Where | Notes |
 |---|---|---|
-| Quran data proxy + cache | `backend/lib/quran_source.py`, `backend/routers/quran.py` | FastAPI fetches Quran.com API v4 / QDC audio API server-side, caches in MongoDB (6-day TTL, per upstream terms ≤ 1 week). Background warm-up on boot caches all 114 chapters (throttled, 3 concurrent). |
+| Quran data proxy + cache | `backend/lib/quran_source.py`, `backend/routers/quran.py` | FastAPI fetches Quran.com API v4 / QDC audio API server-side. It uses only a short-lived in-process memory cache (6-day TTL); there is no server database and no all-chapter warm-up. The installed app stores downloaded chapters in its own IndexedDB. |
 | Search normalisation | `backend/lib/arabic.py` | Separate `norm` field (from `text_imlaei_simple`, diacritics stripped, alef/ya/ta-marbuta unified). Displayed text (`text_uthmani`) is never altered. |
 | Topics | `backend/lib/topics.py` | Curated editorial verse-key lists, every topic flagged `complete=false` + note (not tafsir, not AI). |
 | Typed fetch | `frontend/src/types/quran.ts` ↔ `backend/models/quran.py` | Hand-mirrored interfaces; TanStack Query hooks in `src/lib/quran/hooks.ts`. |
@@ -17,12 +17,12 @@ Arabic-first (RTL, dark) Quran reader + Quranic video studio. Two primary sectio
 | Rendering | `src/lib/rendering/renderer.ts` | One pure `renderFrame(ctx, W, H, design, frame, assets)` used by the live preview, template previews and the exporter (no duplicated styling logic). Layout is resolution-independent (unit = min(W,H)/1080), auto-fits by shrinking font (never distorting glyphs). |
 | Design model | `src/lib/rendering/design.ts` | Versioned `DesignSettings` (v1), 3 built-in templates, `sanitizeDesign()` whitelist/clamp validator for imported data. |
 | Export | `src/lib/export/exporter.ts` | Canvas `captureStream(30)` + Web Audio `MediaStreamDestination` → `MediaRecorder`. MP4 (H.264/AAC) when `isTypeSupported`, otherwise WebM (VP9/VP8+Opus). Real-time, real progress (audio position / total), cancellable. |
-| Persistence | `src/lib/persistence/idb.ts`, `stores.ts` | IndexedDB stores: `favorites`, `templates`, `projects`, `media` (user background Blobs). Small prefs (`src/lib/settings.ts`) + last read position in localStorage. Quota errors surface as Arabic toasts; media falls back to session memory. |
+| Persistence | `src/lib/persistence/idb.ts`, `stores.ts`, `src/lib/offlineChapters.ts` | IndexedDB stores: `favorites`, `templates`, `projects`, `media`, and `offline-content` (one record per downloaded chapter plus chapter/topic indexes). Small prefs + last read position in localStorage. |
 | Media | `src/lib/media/background.ts` | Validates type/size (JPG/PNG/WEBP ≤20 MB, MP4/WEBM/MOV ≤150 MB), loads exactly one background at a time, revokes object URLs / releases video decoders on switch. |
 
 ## 2. Data provenance & licensing
 - Quran text: Quran.com API v4 (`text_uthmani`), Quran Foundation. Translation: Saheeh International (resource id 20). Attribution shown in Settings → About and on Home.
-- Not generated or edited by AI. Integrity check `GET /api/quran/integrity` (also in Settings): 114 chapters, contiguous ids, 6236 verses, contiguous verse numbers per chapter, duplicate keys, empty text, key/number mismatch. Last run: **ok, 6236/6236, 114/114**.
+- Not generated or edited by AI. Settings integrity check now validates downloaded chapters locally: verse count, numbering, duplicate keys, Arabic text, words and English translation. It does not claim to validate chapters that have not been downloaded.
 - Validation is against Quran.com's own chapter metadata and the canonical totals (114 / 6236); no word-by-word cross-check against a second edition (e.g. Tanzil) was performed.
 
 ## 3. Audio sources
@@ -36,7 +36,7 @@ Arabic-first (RTL, dark) Quran reader + Quranic video studio. Two primary sectio
 - No server-side rendering; user media never leaves the device.
 
 ## 5. Offline behaviour (honest)
-- Requires network: Quran text (served by our backend), recitation audio, first load of the app.
+- Requires network: Quran text for chapters not yet downloaded, recitation audio, first load of the app.
 - Works without network once loaded: saved templates, projects, favorites, settings (IndexedDB/localStorage); built-in backgrounds already cached by the browser.
 - No service worker / PWA shell caching in this release.
 
@@ -46,8 +46,8 @@ Arabic-first (RTL, dark) Quran reader + Quranic video studio. Two primary sectio
 
 ## 7. Run / deploy
 - Dev: backend `uvicorn server:app --port 8001 --reload`, frontend `yarn dev` (port 3000, `/api` proxied).
-- Env (`backend/.env`): `MONGO_URL`, `DB_NAME`, `CORS_ORIGINS`; optional `QURAN_API_BASE`, `QDC_API_BASE`. No API keys required (public Quran.com v4 endpoints). Migrating to `apis.quran.foundation` would need OAuth client credentials kept server-side.
-- Deploy via Emergent "Deploy"; first boot warms the Quran cache automatically.
+- Env (`backend/.env`): `CORS_ORIGINS`; optional `QURAN_API_BASE`, `QDC_API_BASE`, and `QF_CLIENT_ID` / `QF_CLIENT_SECRET` / `QF_ENV=production` for Content Sync. No MongoDB or server-side database is used. QF credentials stay only in the hosting environment, never in the APK.
+- Backend has no database dependency. Its temporary cache is lost when the process restarts; downloaded chapters remain on the device.
 
 ## 8. Known limitations
 - Dark theme only; Arabic UI only; one translation (English, Saheeh International).
