@@ -21,7 +21,7 @@ export const formatTime = (ms: number) => {
 
 export const verseMarker = (n: number) => `\uFD3F${toArabicDigits(n)}\uFD3E`;
 
-export const revelationLabel = (p: string) => (p === "makkah" ? "مكية" : "مدنية");
+export const revelationLabel = (p: string) => p === "makkah" ? "مكية" : p === "madinah" ? "مدنية" : "غير محدد";
 
 /** Light Arabic normalisation for client-side filtering of surah names (display text untouched). */
 export const normalizeArabic = (s: string) =>
