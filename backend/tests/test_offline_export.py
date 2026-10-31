@@ -4,7 +4,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from lib.qf_offline import _build_bundle, _find_saheeh_translation, _validate_bundle, QuranFoundationError
+from lib.qf_offline import (
+    QuranFoundationClient, QuranFoundationError, _build_bundle,
+    _find_saheeh_translation, _validate_bundle,
+)
 
 
 class OfflineBundleTransformTests(unittest.TestCase):
@@ -64,6 +67,79 @@ class OfflineBundleTransformTests(unittest.TestCase):
 
         with self.assertRaisesRegex(QuranFoundationError, "Saheeh International"):
             _find_saheeh_translation(FakeClient())
+
+    def test_content_request_refreshes_token_once_after_unauthorized(self):
+        class Response:
+            def __init__(self, status_code, payload=None):
+                self.status_code = status_code
+                self.payload = payload or {"ok": True}
+
+            def raise_for_status(self):
+                if self.status_code >= 400:
+                    raise RuntimeError(f"HTTP {self.status_code}")
+
+            def json(self):
+                return self.payload
+
+        class FakeHttp:
+            def __init__(self):
+                self.responses = [Response(401), Response(200, {"data": "ok"})]
+                self.calls = 0
+
+            def get(self, *args, **kwargs):
+                self.calls += 1
+                return self.responses.pop(0)
+
+        client = QuranFoundationClient.__new__(QuranFoundationClient)
+        client.content_root = "https://apis.quran.foundation/content"
+        client.api_base = client.content_root + "/api/v4"
+        client.headers = {"x-auth-token": "expired"}
+        client.http = FakeHttp()
+        refreshes = []
+
+        def refresh():
+            refreshes.append(True)
+            client.headers = {"x-auth-token": "fresh"}
+
+        client._authenticate = refresh
+        result = client.get("resources/translations")
+        self.assertEqual(result, {"data": "ok"})
+        self.assertEqual(client.http.calls, 2)
+        self.assertEqual(len(refreshes), 1)
+
+    def test_content_request_retries_transient_server_error(self):
+        from unittest.mock import patch
+
+        class Response:
+            def __init__(self, status_code, payload=None):
+                self.status_code = status_code
+                self.payload = payload or {"ok": True}
+
+            def raise_for_status(self):
+                if self.status_code >= 400:
+                    raise RuntimeError(f"HTTP {self.status_code}")
+
+            def json(self):
+                return self.payload
+
+        class FakeHttp:
+            def __init__(self):
+                self.responses = [Response(503), Response(200, {"data": "ok"})]
+                self.calls = 0
+
+            def get(self, *args, **kwargs):
+                self.calls += 1
+                return self.responses.pop(0)
+
+        client = QuranFoundationClient.__new__(QuranFoundationClient)
+        client.content_root = "https://apis.quran.foundation/content"
+        client.api_base = client.content_root + "/api/v4"
+        client.headers = {"x-auth-token": "valid"}
+        client.http = FakeHttp()
+        with patch("lib.qf_offline.time.sleep"):
+            result = client.get("resources/translations")
+        self.assertEqual(result, {"data": "ok"})
+        self.assertEqual(client.http.calls, 2)
 
     def test_validation_rejects_incomplete_quran(self):
         with self.assertRaises(QuranFoundationError):
