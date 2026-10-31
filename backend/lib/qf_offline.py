@@ -98,10 +98,14 @@ def _find_saheeh_translation(client: QuranFoundationClient) -> dict:
             for item in payload.get("translations", [])
         ]
         logger = __import__("logging").getLogger(__name__)
-        logger.warning("QF prelive English translation resources: %s", available)
+        logger.warning("QF English translation resources: %s", available)
+        names = [
+            f'{item.get("id")}: {item.get("name") or item.get("translated_name") or item.get("slug") or "بدون اسم"}'
+            for item in available
+        ]
         raise QuranFoundationError(
             "تعذر تحديد Saheeh International في بيئة Quran Foundation الحالية. "
-            f"عدد الموارد الإنجليزية المتاحة: {len(available)}. راجع سجلات Render لمعرفة أسمائها."
+            f"الموارد الإنجليزية المتاحة ({len(available)}): " + "؛ ".join(names)
         )
     return matches[0]
 
