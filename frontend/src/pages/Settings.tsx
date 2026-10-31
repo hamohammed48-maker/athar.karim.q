@@ -92,6 +92,35 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 pt-8 sm:px-6">
       <PageHeader title="الإعدادات" subtitle="تُحفظ الإعدادات على هذا الجهاز." />
+      <section className={card} id="app-update">
+        <h2 className="flex items-center gap-2 font-semibold"><Smartphone className="size-4 text-gold" /> تحديث التطبيق</h2>
+        <p className="text-sm text-ink-soft">الإصدار المثبت: {APP_VERSION}</p>
+        {availableUpdate && (
+          <div className="space-y-2 rounded-xl border border-gold/30 bg-navy-800 p-3">
+            <p className="font-semibold text-gold">يتوفر إصدار جديد: {availableUpdate.version}</p>
+            {availableUpdate.notes && <p className="whitespace-pre-wrap text-sm text-ink-soft">{availableUpdate.notes}</p>}
+            <p className="text-xs text-ink-muted">حجم الملف: {formatBytes(availableUpdate.size)}</p>
+          </div>
+        )}
+        {updateStatus === "downloading" && (
+          <div className="space-y-2">
+            <div className="h-2 overflow-hidden rounded-full bg-navy-700"><div className="h-full rounded-full bg-gold transition-all" style={{ width: downloadProgress + "%" }} /></div>
+            <p className="text-sm text-ink-soft">جارٍ تنزيل التحديث: {toArabicDigits(downloadProgress)}٪</p>
+          </div>
+        )}
+        {updateMessage && <p className={updateStatus === "error" ? "text-sm text-danger" : "text-sm text-ink-soft"}>{updateMessage}</p>}
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => void handleCheckUpdate()} disabled={updateStatus === "checking" || updateStatus === "downloading"}>
+            <RefreshCw className="me-2 size-4" /> {updateStatus === "checking" ? "جارٍ التحقق…" : "التحقق من التحديث"}
+          </Button>
+          {availableUpdate && (
+            <Button onClick={() => void handleInstallUpdate()} disabled={updateStatus === "downloading"}>
+              <Download className="me-2 size-4" /> {updateStatus === "permission" ? "إعادة محاولة التثبيت" : "تنزيل وتثبيت التحديث"}
+            </Button>
+          )}
+        </div>
+        <p className="text-xs text-ink-muted">يتحقق التطبيق من التحديثات عند فتحه. عند توفر إصدار جديد، نزّله من هنا؛ سيطلب أندرويد تأكيد التثبيت. لا تُحذف بيانات السور والقوالب عند التحديث.</p>
+      </section>
       <section className={card}>
         <h2 className="font-semibold">المظهر</h2>
         <p className="text-sm text-ink-soft" data-testid="settings-theme-display">الوضع الداكن (الإصدار الحالي يدعم الوضع الداكن فقط). لغة الواجهة: العربية.</p>
@@ -188,35 +217,7 @@ export default function SettingsPage() {
         )}
         {integrity.isError && <p className="text-sm text-danger">تعذّر تشغيل الفحص.</p>}
       </section>
-      <section className={card} id="app-update">
-        <h2 className="flex items-center gap-2 font-semibold"><Smartphone className="size-4 text-gold" /> تحديث التطبيق</h2>
-        <p className="text-sm text-ink-soft">الإصدار المثبت: {APP_VERSION}</p>
-        {availableUpdate && (
-          <div className="space-y-2 rounded-xl border border-gold/30 bg-navy-800 p-3">
-            <p className="font-semibold text-gold">يتوفر إصدار جديد: {availableUpdate.version}</p>
-            {availableUpdate.notes && <p className="whitespace-pre-wrap text-sm text-ink-soft">{availableUpdate.notes}</p>}
-            <p className="text-xs text-ink-muted">حجم الملف: {formatBytes(availableUpdate.size)}</p>
-          </div>
-        )}
-        {updateStatus === "downloading" && (
-          <div className="space-y-2">
-            <div className="h-2 overflow-hidden rounded-full bg-navy-700"><div className="h-full rounded-full bg-gold transition-all" style={{ width: downloadProgress + "%" }} /></div>
-            <p className="text-sm text-ink-soft">جارٍ تنزيل التحديث: {toArabicDigits(downloadProgress)}٪</p>
-          </div>
-        )}
-        {updateMessage && <p className={updateStatus === "error" ? "text-sm text-danger" : "text-sm text-ink-soft"}>{updateMessage}</p>}
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => void handleCheckUpdate()} disabled={updateStatus === "checking" || updateStatus === "downloading"}>
-            <RefreshCw className="me-2 size-4" /> {updateStatus === "checking" ? "جارٍ التحقق…" : "التحقق من التحديث"}
-          </Button>
-          {availableUpdate && (
-            <Button onClick={() => void handleInstallUpdate()} disabled={updateStatus === "downloading"}>
-              <Download className="me-2 size-4" /> {updateStatus === "permission" ? "إعادة محاولة التثبيت" : "تنزيل وتثبيت التحديث"}
-            </Button>
-          )}
-        </div>
-        <p className="text-xs text-ink-muted">يتحقق التطبيق من التحديثات عند فتحه. عند توفر إصدار جديد، نزّله من هنا؛ سيطلب أندرويد تأكيد التثبيت. لا تُحذف بيانات السور والقوالب عند التحديث.</p>
-      </section>
+
       <section className={card} id="about">
         <h2 className="flex items-center gap-2 font-semibold"><Info className="size-4 text-gold" /> حول التطبيق</h2>
         <p className="font-quran text-2xl text-gold">أثر كريم — آياتٌ تُتلى، وأثرٌ يبقى.</p>
@@ -227,9 +228,7 @@ export default function SettingsPage() {
           <li>تصدير الفيديو يتم داخل متصفحك بالكامل؛ لا تُرفع ملفاتك إلى أي خادم.</li>
           <li>تصنيف المواضيع مختارات تحريرية وليس تفسيراً.</li>
         </ul>
-        <a href="/api/download/project" download="athar-kareem.zip" className="inline-flex h-11 items-center gap-2 rounded-lg border border-line px-4 text-sm hover:bg-navy-800" data-testid="settings-download-source">
-          تنزيل ملفات المشروع (ZIP)
-        </a>
+
       </section>
     </div>
   );
