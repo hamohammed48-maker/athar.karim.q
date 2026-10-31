@@ -61,3 +61,13 @@ window.addEventListener("online", checkQuranSync);
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") checkQuranSync();
 });
+
+
+// Check for a published Android release on each app launch. Installation always
+// requires the user's confirmation in Android's package installer.
+void checkAppUpdate().then((update) => {
+  try { localStorage.setItem("athar.appUpdate.available.v1", JSON.stringify(update)); } catch { /* ignore */ }
+  window.dispatchEvent(new CustomEvent("athar-app-update", { detail: update }));
+}).catch(() => {
+  // Offline launch is expected; manual checking remains available in Settings.
+});
