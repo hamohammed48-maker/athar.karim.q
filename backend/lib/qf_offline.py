@@ -7,6 +7,7 @@ prepackaged into the APK.
 from __future__ import annotations
 
 import copy
+import logging
 import os
 import re
 import threading
@@ -16,6 +17,8 @@ from datetime import datetime, timedelta, timezone
 import httpx
 
 from lib.topics import TOPICS, TOPIC_NOTE
+
+logger = logging.getLogger(__name__)
 
 EXPECTED_CHAPTERS = 114
 EXPECTED_VERSES = 6236
@@ -224,7 +227,25 @@ def _build_bundle(
         if len(verses_raw) != EXPECTED_VERSES:
             raise QuranFoundationError(f"Expected 6236 verses, received {len(verses_raw)}.")
         if len(words_raw) != EXPECTED_WORDS or len(mushaf_words) < EXPECTED_WORDS:
-            raise QuranFoundationError("Uthmani word data is incomplete.")
+            core_word_types: dict[str, int] = {}
+            for record in core_records:
+                if record.get("record_type") == "word":
+                    kind = str(record.get("char_type_name") or "missing")
+                    core_word_types[kind] = core_word_types.get(kind, 0) + 1
+            mushaf_word_records = sum(
+                1 for record in mushaf_records
+                if record.get("record_type") == "mushaf_word"
+            )
+            diagnostics = (
+                f"core_word_records={len(words_raw)}/{EXPECTED_WORDS}; "
+                f"mushaf_word_records={mushaf_word_records}; "
+                f"unique_uthmani_word_ids={len(mushaf_words)}; "
+                f"core_word_types={core_word_types}"
+            )
+            logger.error("Incomplete Uthmani word snapshot: %s", diagnostics)
+            raise QuranFoundationError(
+                "بيانات الكلمات العثمانية غير مكتملة. " + diagnostics
+            )
         if len(translations_by_key) != EXPECTED_VERSES:
             raise QuranFoundationError("Selected translation snapshot is incomplete.")
 
