@@ -85,6 +85,7 @@ class OfflineBundleTransformTests(unittest.TestCase):
             {"id": 20, "name": "Saheeh International", "author_name": "Saheeh International"},
             "quran_core:1;mushafs:4;translations:20",
             "opaque-token",
+            strict=False,
         )
         with self.assertRaises(RuntimeError):
             validate_bundle(bundle)
