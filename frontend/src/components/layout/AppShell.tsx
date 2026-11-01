@@ -111,9 +111,14 @@ export default function AppShell() {
         return;
       }
 
-      // Top-level sections are independent roots. Back on one of them must not
-      // jump to a different section; only the app home can be exited.
-      if (section === "home" && Capacitor.isNativePlatform()) {
+      // Once the active section reaches its own root, the next back action
+      // returns to the app home. It must never jump to another section's history.
+      if (section !== "home") {
+        navigate("/", { replace: true });
+        return;
+      }
+
+      if (Capacitor.isNativePlatform()) {
         void BackNavigation.exitApp().catch(() => undefined);
       }
     };
