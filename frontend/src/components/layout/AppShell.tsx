@@ -18,12 +18,19 @@ const NAV = [
 
 type HistoryEntry = { key: string; pathname: string; search: string; hash: string };
 
+function sectionFor(pathname: string): string {
+  if (pathname === "/" ) return "home";
+  if (pathname.startsWith("/quran")) return "quran";
+  if (pathname.startsWith("/studio")) return "studio";
+  if (pathname.startsWith("/library")) return "library";
+  if (pathname.startsWith("/settings")) return "settings";
+  return "other";
+}
+
 function parentRoute(pathname: string): string | null {
-  if (pathname === "/") return null;
   if (pathname === "/quran/discover" || /^\/quran\/[^/]+$/.test(pathname)) return "/quran";
   if (pathname === "/studio/edit") return "/studio";
-  if (pathname === "/quran" || pathname === "/studio" || pathname === "/library" || pathname === "/settings") return "/";
-  return "/";
+  return null;
 }
 
 export default function AppShell() {
@@ -32,15 +39,30 @@ export default function AppShell() {
   const navigationType = useNavigationType();
   const { pathname } = location;
   const inStudio = pathname.startsWith("/studio");
-  const routeHistory = useRef<HistoryEntry[]>([{
+  // Keep a separate navigation stack for each top-level section. Switching tabs
+  // must never add the previous section to the current section's back history.
+  const sectionHistory = useRef(new Map<string, HistoryEntry[]>());
+  const activeSection = useRef(sectionFor(location.pathname));
+  const initialEntry: HistoryEntry = {
     key: location.key, pathname: location.pathname, search: location.search, hash: location.hash,
-  }]);
+  };
+  sectionHistory.current.set(activeSection.current, [initialEntry]);
 
   useEffect(() => {
     const current: HistoryEntry = {
       key: location.key, pathname: location.pathname, search: location.search, hash: location.hash,
     };
-    const stack = routeHistory.current;
+    const section = sectionFor(location.pathname);
+    // A transition between top-level sections starts/continues that section's
+    // own history; it is never recorded as a child navigation in another section.
+    if (activeSection.current !== section) {
+      activeSection.current = section;
+      sectionHistory.current.set(section, [current]);
+      return;
+    }
+
+    const stack = sectionHistory.current.get(section) ?? [current];
+    sectionHistory.current.set(section, stack);
     if (navigationType === "PUSH") {
       if (stack[stack.length - 1]?.key !== current.key) stack.push(current);
     } else if (navigationType === "REPLACE") {
@@ -72,20 +94,26 @@ export default function AppShell() {
       window.dispatchEvent(backRequest);
       if (backRequest.defaultPrevented) return;
 
-      const stack = routeHistory.current;
+      const currentPath = window.location.pathname;
+      const section = sectionFor(currentPath);
+      const stack = sectionHistory.current.get(section) ?? [];
       if (stack.length > 1) {
+        // Go back only within the active section.
         navigate(-1);
         return;
       }
 
-      // Deep links still have a meaningful parent even when there is no in-app history.
-      const parent = parentRoute(window.location.pathname);
+      // If a nested page was opened directly (without an in-app history entry),
+      // return to its parent inside the same section.
+      const parent = parentRoute(currentPath);
       if (parent) {
         navigate(parent, { replace: true });
         return;
       }
 
-      if (Capacitor.isNativePlatform()) {
+      // Top-level sections are independent roots. Back on one of them must not
+      // jump to a different section; only the app home can be exited.
+      if (section === "home" && Capacitor.isNativePlatform()) {
         void BackNavigation.exitApp().catch(() => undefined);
       }
     };
