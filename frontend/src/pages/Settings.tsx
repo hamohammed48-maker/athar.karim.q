@@ -144,8 +144,8 @@ export default function SettingsPage() {
           </div>
         </div>
         <p className="text-sm text-ink-muted">اعرض السور والتلاوات والملفات والمشاريع المحفوظة، وتحكّم بكل عنصر بشكل مستقل.</p>
-        <Button asChild className="w-full" data-testid="settings-open-storage">
-          <Link to="/storage"><FolderOpen className="me-2 size-4" /> دخول إلى البيانات المحمّلة</Link>
+        <Button render={<Link to="/storage" />} className="w-full" data-testid="settings-open-storage">
+          <FolderOpen className="me-2 size-4" /> دخول إلى البيانات المحمّلة
         </Button>
       </section>
       <section className={card}>
