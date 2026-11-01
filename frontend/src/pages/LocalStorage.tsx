@@ -34,8 +34,8 @@ export default function LocalStoragePage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 pt-8 pb-28 sm:px-6">
       <div className="flex items-center gap-3">
-        <Button asChild variant="ghost" size="icon" aria-label="العودة إلى الإعدادات">
-          <Link to="/settings"><ArrowRight className="size-5" /></Link>
+        <Button render={<Link to="/settings" />} variant="ghost" size="icon" aria-label="العودة إلى الإعدادات">
+          <ArrowRight className="size-5" />
         </Button>
         <div className="min-w-0 flex-1">
           <PageHeader title="البيانات المحمّلة" subtitle="الملفات والبيانات المحفوظة على هذا الجهاز." />
