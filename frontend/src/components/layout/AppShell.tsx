@@ -1,10 +1,13 @@
-import { useEffect } from "react";
-import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { useEffect, useRef } from "react";
+import { Capacitor, registerPlugin } from "@capacitor/core";
+import { Link, NavLink, Outlet, useLocation, useNavigate, useNavigationType } from "react-router-dom";
 import { BookOpen, Clapperboard, Home, Library, Search, Settings } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 import { Logo } from "@/components/brand/Logo";
 import { QuranAudioBar } from "@/components/quran/QuranAudioBar";
 import { cn } from "@/lib/utils";
+
+const BackNavigation = registerPlugin<{ exitApp(): Promise<void> }>("BackNavigation");
 
 const NAV = [
   { to: "/", label: "الرئيسية", icon: Home, id: "home", end: true },
@@ -13,9 +16,83 @@ const NAV = [
   { to: "/library", label: "مكتبتي", icon: Library, id: "library", end: false },
 ];
 
+type HistoryEntry = { key: string; pathname: string; search: string; hash: string };
+
+function parentRoute(pathname: string): string | null {
+  if (pathname === "/") return null;
+  if (pathname === "/quran/discover" || /^\/quran\/[^/]+$/.test(pathname)) return "/quran";
+  if (pathname === "/studio/edit") return "/studio";
+  if (pathname === "/quran" || pathname === "/studio" || pathname === "/library" || pathname === "/settings") return "/";
+  return "/";
+}
+
 export default function AppShell() {
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const navigationType = useNavigationType();
+  const { pathname } = location;
   const inStudio = pathname.startsWith("/studio");
+  const routeHistory = useRef<HistoryEntry[]>([{
+    key: location.key, pathname: location.pathname, search: location.search, hash: location.hash,
+  }]);
+
+  useEffect(() => {
+    const current: HistoryEntry = {
+      key: location.key, pathname: location.pathname, search: location.search, hash: location.hash,
+    };
+    const stack = routeHistory.current;
+    if (navigationType === "PUSH") {
+      if (stack[stack.length - 1]?.key !== current.key) stack.push(current);
+    } else if (navigationType === "REPLACE") {
+      if (stack.length) stack[stack.length - 1] = current;
+      else stack.push(current);
+    } else {
+      const existingIndex = stack.findIndex((entry) => entry.key === current.key);
+      if (existingIndex >= 0) stack.splice(existingIndex + 1);
+      else {
+        stack.length = 0;
+        stack.push(current);
+      }
+    }
+  }, [location.key, location.pathname, location.search, location.hash, navigationType]);
+
+  useEffect(() => {
+    const handleAndroidBack = () => {
+      // Native dialogs and sheets get first refusal; Escape is the standard Radix close path.
+      const openOverlay = document.querySelector(
+        '[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"], [data-radix-popper-content-wrapper] [data-state="open"]'
+      );
+      if (openOverlay) {
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }));
+        return;
+      }
+
+      // Give the active feature (for example, the Studio wizard) a chance to go back internally.
+      const backRequest = new CustomEvent("athar:back-request", { cancelable: true });
+      window.dispatchEvent(backRequest);
+      if (backRequest.defaultPrevented) return;
+
+      const stack = routeHistory.current;
+      if (stack.length > 1) {
+        navigate(-1);
+        return;
+      }
+
+      // Deep links still have a meaningful parent even when there is no in-app history.
+      const parent = parentRoute(window.location.pathname);
+      if (parent) {
+        navigate(parent, { replace: true });
+        return;
+      }
+
+      if (Capacitor.isNativePlatform()) {
+        void BackNavigation.exitApp().catch(() => undefined);
+      }
+    };
+
+    window.addEventListener("athar:android-back", handleAndroidBack);
+    return () => window.removeEventListener("athar:android-back", handleAndroidBack);
+  }, [navigate]);
 
   useEffect(() => {
     const boot = document.getElementById("boot");
