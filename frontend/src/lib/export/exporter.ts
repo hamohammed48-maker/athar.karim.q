@@ -144,7 +144,10 @@ export async function exportVideo(job: ExportJob): Promise<ExportResult> {
       }, { once: true });
     });
 
-    recorder.start(1000);
+    // Keep one continuous recording session. Some Android WebView MP4 encoders
+    // produce fragments with broken duration metadata when a 1s timeslice is used.
+    // A single final dataavailable chunk gives the muxer one coherent timeline.
+    recorder.start();
     const loop = () => { draw(); raf = requestAnimationFrame(loop); };
     loop();
     await player.play(0);
@@ -177,7 +180,8 @@ export async function exportVideo(job: ExportJob): Promise<ExportResult> {
         }
       }, 4000);
       try {
-        recorder.requestData();
+        // stop() emits the final dataavailable event before stop; do not force an
+        // extra fragment with requestData(), which can truncate MP4 duration in WebView.
         recorder.stop();
       } catch (e) {
         window.clearTimeout(fallback);
