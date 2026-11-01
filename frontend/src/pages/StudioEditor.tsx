@@ -53,6 +53,22 @@ export default function StudioEditor() {
     }
   }, [project]);
 
+  useEffect(() => {
+    const handleBackRequest = (event: Event) => {
+      if (saveOpen) {
+        setSaveOpen(false);
+        event.preventDefault();
+        return;
+      }
+      if (step > 1) {
+        setStep((current) => Math.max(1, current - 1));
+        event.preventDefault();
+      }
+    };
+    window.addEventListener("athar:back-request", handleBackRequest);
+    return () => window.removeEventListener("athar:back-request", handleBackRequest);
+  }, [saveOpen, step]);
+
   const { data: chapters } = useChapters();
   const names = useMemo(() => Object.fromEntries((chapters ?? []).map((c) => [c.id, c.name_arabic])) as Record<number, string>, [chapters]);
   const keys = useMemo(() => project?.verseKeys ?? [], [project?.verseKeys]);
