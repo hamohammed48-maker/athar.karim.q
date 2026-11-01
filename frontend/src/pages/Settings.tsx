@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Database, Info, ShieldCheck, Trash2, Download, RefreshCw, Smartphone, ChevronDown, FolderOpen } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Database, Info, ShieldCheck, Download, RefreshCw, Smartphone, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader, RangeField, Segmented, ToggleRow } from "@/components/shared/ui-kit";
 import { checkOfflineQuranIntegrity } from "@/lib/offlineChapters";
-import { clearAllLocalStorageData, deleteLocalStorageItem, getLocalStorageInventory, type LocalStorageItem } from "@/lib/localStorageManager";
+import { Link } from "react-router-dom";
+
 import { useReciters } from "@/lib/quran/hooks";
 import { formatBytes, toArabicDigits } from "@/lib/quran/format";
 import { ASPECTS, RESOLUTIONS, type AspectRatio, type Resolution } from "@/lib/rendering/design";
@@ -21,7 +22,6 @@ export default function SettingsPage() {
   const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "current" | "available" | "downloading" | "permission" | "installer" | "error">("idle");
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [updateMessage, setUpdateMessage] = useState("");
-  const [storageExpanded, setStorageExpanded] = useState(false);
 
   const handleCheckUpdate = async () => {
     setUpdateStatus("checking");
@@ -69,34 +69,9 @@ export default function SettingsPage() {
     void handleCheckUpdate();
     return () => window.removeEventListener("athar-app-update", onAvailable);
   }, []);
-  const qc = useQueryClient();
   const { data: reciters } = useReciters();
   const usage = useQuery({ queryKey: ["storage-estimate"], queryFn: () => navigator.storage?.estimate?.() ?? Promise.resolve(null) });
   const integrity = useQuery({ queryKey: ["integrity", "local"], queryFn: checkOfflineQuranIntegrity, enabled: false });
-  const storageInventory = useQuery({ queryKey: ["local-storage-inventory"], queryFn: getLocalStorageInventory, staleTime: 0, enabled: storageExpanded });
-  const refreshStorage = async () => {
-    await Promise.all([storageInventory.refetch(), usage.refetch()]);
-    qc.invalidateQueries({ queryKey: ["idb"] });
-  };
-  const handleDeleteStorageItem = async (item: LocalStorageItem) => {
-    if (!confirm(`حذف "${item.label}" من التخزين المحلي؟ لن يتأثر أي عنصر آخر.`)) return;
-    await deleteLocalStorageItem(item);
-    if (item.store === "offline-content" && item.key.startsWith("chapter:")) qc.removeQueries({ queryKey: ["chapter", Number(item.key.slice(8))] });
-    if (item.store === "media" && item.key.startsWith("quran-audio:")) {
-      const [, reciterId, chapterId] = item.key.split(":");
-      qc.removeQueries({ queryKey: ["audio", Number(reciterId), Number(chapterId)] });
-    }
-    await refreshStorage();
-  };
-  const handleClearAllStorage = async () => {
-    if (!confirm("سيُحذف كل ما حفظته داخل التطبيق على هذا الجهاز، بما في ذلك نصوص السور والتلاوات الصوتية والمفضلة والقوالب والمشاريع والوسائط. لا يمكن التراجع عن الحذف. هل تريد المتابعة؟")) return;
-    await clearAllLocalStorageData();
-    qc.removeQueries({ queryKey: ["chapter"] });
-    qc.removeQueries({ queryKey: ["audio"] });
-    qc.removeQueries({ queryKey: ["chapters"] });
-    qc.removeQueries({ queryKey: ["reciters"] });
-    await refreshStorage();
-  };
 
   const card = "space-y-4 rounded-2xl border border-line bg-navy-900 p-5";
   return (
@@ -159,71 +134,19 @@ export default function SettingsPage() {
         <Button variant="ghost" onClick={() => updateSettings(DEFAULT_SETTINGS)} data-testid="settings-reset">استعادة الإعدادات الافتراضية</Button>
       </section>
       <section className={card} id="local-storage">
-        <button
-          type="button"
-          className="flex w-full items-center justify-between gap-3 text-start"
-          aria-expanded={storageExpanded}
-          aria-controls="local-storage-content"
-          onClick={() => setStorageExpanded((expanded) => !expanded)}
-          data-testid="settings-storage-toggle"
-        >
-          <span className="flex min-w-0 items-center gap-2">
-            <Database className="size-4 shrink-0 text-gold" />
-            <span className="font-semibold">بيانات التخزين المحلي</span>
-          </span>
-          <span className="flex shrink-0 items-center gap-2 text-sm text-ink-soft">
-            {storageInventory.data ? toArabicDigits(storageInventory.data.items.length) + " عنصر" : "عرض المحفوظات"}
-            <ChevronDown className={`size-4 transition-transform duration-200 ${storageExpanded ? "rotate-180" : ""}`} />
-          </span>
-        </button>
-        <div className="text-sm text-ink-soft" data-testid="settings-storage-usage">
-          {usage.data ? `المستخدم: ${formatBytes(usage.data.usage ?? 0)} · المساحة التي يتيحها النظام: ${formatBytes(usage.data.quota ?? 0)}` : "المتصفح لا يوفّر تقديراً لمساحة التخزين."}
-        </div>
-        <p className="text-xs text-ink-muted">اضغط لعرض الملفات والبيانات المحفوظة على جهازك وإدارة كل عنصر بشكل مستقل.</p>
-        {storageExpanded && <div id="local-storage-content" className="space-y-4 border-t border-line pt-4">
-          <p className="text-xs text-ink-muted">لا يفرض التطبيق سقفاً ثابتاً مثل 10 جيجابايت؛ السعة تتغير حسب مساحة الجهاز وسياسة Android. أحجام العناصر أدناه تقديرية وقد تختلف قليلاً عن قياس النظام.</p>
-          {storageInventory.isLoading && <p className="text-sm text-ink-soft">جارٍ فحص البيانات المحفوظة…</p>}
-          {storageInventory.isError && <p className="text-sm text-danger">تعذّر قراءة محتويات التخزين المحلي.</p>}
-          {storageInventory.data && <>
-            <div className="rounded-xl border border-line bg-navy-800 p-3">
-              <p className="font-semibold">إجمالي البيانات المفهرسة: {formatBytes(storageInventory.data.totalBytes)}</p>
-              <p className="text-xs text-ink-muted">عدد العناصر: {toArabicDigits(storageInventory.data.items.length)}</p>
-            </div>
-            {storageInventory.data.items.length === 0 ? <p className="text-sm text-ink-muted">لا توجد عناصر محفوظة حالياً.</p> : (
-              <div className="space-y-4">
-                {Array.from(new Set(storageInventory.data.items.map((item) => item.category))).map((category) => {
-                  const items = storageInventory.data!.items.filter((item) => item.category === category);
-                  const categoryBytes = items.reduce((sum, item) => sum + item.size, 0);
-                  return <div key={category} className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="font-semibold">{category}</h3>
-                      <span className="text-xs text-ink-muted">{formatBytes(categoryBytes)} · {toArabicDigits(items.length)} عنصر</span>
-                    </div>
-                    {items.map((item) => <div key={item.store + ":" + item.key} className="flex items-center justify-between gap-3 rounded-xl border border-line bg-navy-800 p-3" data-testid="local-storage-item">
-                      <div className="min-w-0 space-y-1">
-                        <p className="truncate text-sm font-semibold">{item.label}</p>
-                        {item.detail && <p className="truncate text-xs text-ink-soft">{item.detail}</p>}
-                        <p className="text-xs text-ink-muted">{formatBytes(item.size)}</p>
-                      </div>
-                      <Button variant="ghost" size="icon" aria-label={`حذف ${item.label}`} onClick={() => void handleDeleteStorageItem(item)} data-testid="local-storage-delete-item">
-                        <Trash2 className="size-4 text-danger" />
-                      </Button>
-                    </div>)}
-                  </div>;
-                })}
-              </div>
-            )}
-          </>}
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => void refreshStorage()} disabled={storageInventory.isFetching || usage.isFetching}>
-              <RefreshCw className="me-2 size-4" /> تحديث قائمة البيانات
-            </Button>
-            <Button variant="destructive" onClick={() => void handleClearAllStorage()} disabled={!storageInventory.data?.items.length} data-testid="settings-clear-data">
-              <Trash2 className="me-2 size-4" /> حذف جميع البيانات المحفوظة
-            </Button>
+        <div className="flex items-center gap-3">
+          <Database className="size-5 shrink-0 text-gold" />
+          <div className="min-w-0 flex-1">
+            <h2 className="font-semibold">بيانات التخزين المحلي</h2>
+            <p className="mt-1 text-sm text-ink-soft">
+              {usage.data ? `المستخدم: ${formatBytes(usage.data.usage ?? 0)} · المساحة التي يتيحها النظام: ${formatBytes(usage.data.quota ?? 0)}` : "بياناتك المحفوظة داخل التطبيق على هذا الجهاز."}
+            </p>
           </div>
-          <p className="text-xs text-ink-muted">يمكنك حذف سورة أو تلاوة أو قالب أو مشروع بشكل مستقل. حذف الصوت لا يحذف نص السورة، وحذف عنصر واحد لا يؤثر على بقية البيانات. حذف الكل يمسح جميع البيانات المخزنة داخل التطبيق على هذا الجهاز.</p>
-        </div>}
+        </div>
+        <p className="text-sm text-ink-muted">اعرض السور والتلاوات والملفات والمشاريع المحفوظة، وتحكّم بكل عنصر بشكل مستقل.</p>
+        <Button asChild className="w-full" data-testid="settings-open-storage">
+          <Link to="/storage"><FolderOpen className="me-2 size-4" /> دخول إلى البيانات المحمّلة</Link>
+        </Button>
       </section>
       <section className={card}>
         <h2 className="flex items-center gap-2 font-semibold"><ShieldCheck className="size-4 text-gold" /> سلامة بيانات القرآن</h2>
