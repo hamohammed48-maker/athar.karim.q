@@ -245,7 +245,7 @@ export default function QuranReader() {
       )}
 
       {selected.length > 0 && (
-        <div className={cn("fixed inset-x-3 z-40 mx-auto max-w-3xl animate-fade-up rounded-2xl border border-action/50 bg-navy-800/95 p-3 shadow-2xl backdrop-blur-xl", quranPlayer.items.length ? "bottom-[13.5rem] md:bottom-40" : "bottom-20 md:bottom-6")} data-testid="reader-selection-bar">
+        <div className={cn("fixed inset-x-3 z-40 mx-auto max-w-3xl animate-fade-up rounded-2xl border border-action/50 bg-navy-800/95 p-3 shadow-2xl backdrop-blur-xl", quranPlayer.items.length ? "bottom-[calc(4rem+env(safe-area-inset-bottom)+11rem)] md:bottom-40" : "bottom-[calc(4rem+env(safe-area-inset-bottom)+1rem)] md:bottom-6")} data-testid="reader-selection-bar">
           <div className="flex flex-wrap items-center gap-2">
             <Popover>
               <PopoverTrigger render={<button type="button" className="rounded-lg px-3 py-2 text-sm hover:bg-navy-700" data-testid="reader-selection-review" />}>
