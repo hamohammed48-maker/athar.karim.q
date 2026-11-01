@@ -4,11 +4,10 @@ import { Database, Info, ShieldCheck, Trash2, Headphones, Download, RefreshCw, S
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader, RangeField, Segmented, ToggleRow } from "@/components/shared/ui-kit";
-import { checkOfflineQuranIntegrity, getDownloadedChapterIds } from "@/lib/offlineChapters";
-import { idbClear } from "@/lib/persistence/idb";
+import { checkOfflineQuranIntegrity } from "@/lib/offlineChapters";
+import { clearAllLocalStorageData, deleteLocalStorageItem, getLocalStorageInventory, type LocalStorageItem } from "@/lib/localStorageManager";
 import { useReciters } from "@/lib/quran/hooks";
 import { formatBytes, toArabicDigits } from "@/lib/quran/format";
-import { deleteDownloadedAudio, listDownloadedAudio } from "@/lib/audio/offlineAudio";
 import { ASPECTS, RESOLUTIONS, type AspectRatio, type Resolution } from "@/lib/rendering/design";
 import { DEFAULT_SETTINGS, updateSettings, useSettings } from "@/lib/settings";
 import { APP_VERSION, checkAppUpdate, downloadAndInstallUpdate, type AvailableUpdate } from "@/lib/appUpdater";
@@ -73,19 +72,29 @@ export default function SettingsPage() {
   const { data: reciters } = useReciters();
   const usage = useQuery({ queryKey: ["storage-estimate"], queryFn: () => navigator.storage?.estimate?.() ?? Promise.resolve(null) });
   const integrity = useQuery({ queryKey: ["integrity", "local"], queryFn: checkOfflineQuranIntegrity, enabled: false });
-  const audioDownloads = useQuery({ queryKey: ["offline-quran-audio"], queryFn: listDownloadedAudio, staleTime: 0 });
-  const downloaded = useQuery({
-    queryKey: ["offline-quran-chapters"],
-    queryFn: getDownloadedChapterIds,
-    staleTime: 0,
-    refetchOnWindowFocus: true,
-  });
-
-  const clearAll = async () => {
-    if (!confirm("سيُحذف كل المحفوظ على هذا الجهاز: المفضلة والنماذج والمشاريع والخلفيات. متابعة؟")) return;
-    await Promise.all((["favorites", "templates", "projects", "media"] as const).map((x) => idbClear(x)));
+  const storageInventory = useQuery({ queryKey: ["local-storage-inventory"], queryFn: getLocalStorageInventory, staleTime: 0 });
+  const refreshStorage = async () => {
+    await Promise.all([storageInventory.refetch(), usage.refetch()]);
     qc.invalidateQueries({ queryKey: ["idb"] });
-    void usage.refetch();
+  };
+  const handleDeleteStorageItem = async (item: LocalStorageItem) => {
+    if (!confirm(`حذف "${item.label}" من التخزين المحلي؟ لن يتأثر أي عنصر آخر.`)) return;
+    await deleteLocalStorageItem(item);
+    if (item.store === "offline-content" && item.key.startsWith("chapter:")) qc.removeQueries({ queryKey: ["chapter", Number(item.key.slice(8))] });
+    if (item.store === "media" && item.key.startsWith("quran-audio:")) {
+      const [, reciterId, chapterId] = item.key.split(":");
+      qc.removeQueries({ queryKey: ["audio", Number(reciterId), Number(chapterId)] });
+    }
+    await refreshStorage();
+  };
+  const handleClearAllStorage = async () => {
+    if (!confirm("سيُحذف كل ما حفظته داخل التطبيق على هذا الجهاز، بما في ذلك نصوص السور والتلاوات الصوتية والمفضلة والقوالب والمشاريع والوسائط. لا يمكن التراجع عن الحذف. هل تريد المتابعة؟")) return;
+    await clearAllLocalStorageData();
+    qc.removeQueries({ queryKey: ["chapter"] });
+    qc.removeQueries({ queryKey: ["audio"] });
+    qc.removeQueries({ queryKey: ["chapters"] });
+    qc.removeQueries({ queryKey: ["reciters"] });
+    await refreshStorage();
   };
 
   const card = "space-y-4 rounded-2xl border border-line bg-navy-900 p-5";
@@ -148,62 +157,54 @@ export default function SettingsPage() {
         <ToggleRow label="العلامة المائية مفعّلة افتراضياً" checked={s.defaultWatermark} onChange={(v) => updateSettings({ defaultWatermark: v })} testId="settings-watermark-toggle" />
         <Button variant="ghost" onClick={() => updateSettings(DEFAULT_SETTINGS)} data-testid="settings-reset">استعادة الإعدادات الافتراضية</Button>
       </section>
-      <section className={card}>
+      <section className={card} id="local-storage">
         <h2 className="flex items-center gap-2 font-semibold"><Database className="size-4 text-gold" /> التخزين المحلي</h2>
         <p className="text-sm text-ink-soft" data-testid="settings-storage-usage">
-          {usage.data ? `المستخدم: ${formatBytes(usage.data.usage ?? 0)} من ${formatBytes(usage.data.quota ?? 0)} متاحة للمتصفح` : "المتصفح لا يوفّر تقدير مساحة التخزين."}
+          {usage.data ? `المستخدم: ${formatBytes(usage.data.usage ?? 0)} · المساحة التي يتيحها النظام: ${formatBytes(usage.data.quota ?? 0)}` : "المتصفح لا يوفّر تقديراً لمساحة التخزين."}
         </p>
-        <p className="text-xs text-ink-muted">المفضلة والنماذج والمشاريع والخلفيات محفوظة في IndexedDB على هذا المتصفح فقط، ولا تُزامن مع أجهزة أخرى. يمكنك تصدير النماذج من «نماذجي المحفوظة».</p>
-        <Button variant="destructive" onClick={clearAll} data-testid="settings-clear-data">حذف بيانات المستخدم المحلية</Button>
-      </section>
-      <section className={card}>
-        <h2 className="flex items-center gap-2 font-semibold"><Database className="size-4 text-gold" /> السور المحفوظة دون إنترنت</h2>
-        {downloaded.isLoading && <p className="text-sm text-ink-soft">جارٍ فحص السور المحفوظة…</p>}
-        {downloaded.isSuccess && (
-          <div className="space-y-2 text-sm" data-testid="offline-quran-ready">
-            <p className="text-success">السور التي فتحتها بعد تنزيلها محفوظة على الجهاز ويمكن قراءتها دون اتصال.</p>
-            <p>عدد السور المحفوظة: {toArabicDigits(downloaded.data.length)} من ١١٤</p>
-            {downloaded.data.length > 0 && <p className="text-xs text-ink-muted">أرقام السور: {downloaded.data.map(toArabicDigits).join("، ")}</p>}
+        <p className="text-xs text-ink-muted">لا يفرض التطبيق سقفاً ثابتاً مثل 10 جيجابايت؛ السعة تتغير حسب مساحة الجهاز وسياسة Android. أحجام العناصر أدناه تقديرية وقد تختلف قليلاً عن قياس النظام.</p>
+        {storageInventory.isLoading && <p className="text-sm text-ink-soft">جارٍ فحص البيانات المحفوظة…</p>}
+        {storageInventory.isError && <p className="text-sm text-danger">تعذّر قراءة محتويات التخزين المحلي.</p>}
+        {storageInventory.data && <>
+          <div className="rounded-xl border border-line bg-navy-800 p-3">
+            <p className="font-semibold">إجمالي البيانات المفهرسة: {formatBytes(storageInventory.data.totalBytes)}</p>
+            <p className="text-xs text-ink-muted">عدد العناصر: {toArabicDigits(storageInventory.data.items.length)}</p>
           </div>
-        )}
-        {downloaded.isError && <p className="text-sm text-warning">تعذّر قراءة قائمة السور المحفوظة.</p>}
-        <Button variant="outline" onClick={() => void downloaded.refetch()} disabled={downloaded.isFetching} data-testid="offline-quran-refresh">
-          {downloaded.isFetching ? "جارٍ التحديث…" : "تحديث قائمة السور المحفوظة"}
-        </Button>
-        <p className="text-xs text-ink-muted">افتح أي سورة مع توفر الإنترنت لتنزيلها تلقائياً. لا يتم تنزيل بقية السور. تبقى النسخة المحلية متاحة عند انقطاع الاتصال، وتُحدّث عند الاتصال وفق آلية المصدر.</p>
-      </section>
-      <section className={card}>
-        <h2 className="flex items-center gap-2 font-semibold"><Headphones className="size-4 text-gold" /> التلاوات الصوتية المحمّلة</h2>
-        <p className="text-sm text-ink-soft">كل ملف مرتبط بسورة وقارئ محدد، ويمكن تشغيله دون إنترنت. حذف الصوت لا يحذف نص السورة.</p>
-        {audioDownloads.isLoading && <p className="text-sm text-ink-soft">جارٍ قراءة الملفات الصوتية…</p>}
-        {audioDownloads.data && (
-          <>
-            <p className="text-sm font-semibold">عدد الملفات: {toArabicDigits(audioDownloads.data.length)} — المساحة المستخدمة: {formatBytes(audioDownloads.data.reduce((sum, item) => sum + item.size, 0))}</p>
-            {audioDownloads.data.length === 0 ? <p className="text-sm text-ink-muted">لا توجد تلاوات محمّلة حالياً.</p> : (
-              <div className="space-y-2">
-                {audioDownloads.data.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-line bg-navy-800 p-3" data-testid={`downloaded-audio-${item.chapterId}-${item.reciterId}`}>
-                    <div className="min-w-0 space-y-1">
-                      <p className="truncate font-semibold">سورة {item.chapterName}</p>
-                      <p className="truncate text-xs text-ink-soft">القارئ: {item.reciterName}</p>
-                      <p className="text-xs text-ink-muted">الحجم: {formatBytes(item.size)} · {new Date(item.downloadedAt).toLocaleDateString("ar-IQ")}</p>
-                    </div>
-                    <Button variant="ghost" size="icon" aria-label={`حذف صوت سورة ${item.chapterName}`} onClick={async () => {
-                      if (!confirm(`حذف صوت سورة ${item.chapterName} للقارئ ${item.reciterName}؟`)) return;
-                      await deleteDownloadedAudio(item.id);
-                      await audioDownloads.refetch();
-                    }} data-testid={`delete-audio-${item.chapterId}-${item.reciterId}`}><Trash2 className="size-4 text-danger" /></Button>
+          {storageInventory.data.items.length === 0 ? <p className="text-sm text-ink-muted">لا توجد عناصر محفوظة حالياً.</p> : (
+            <div className="space-y-4">
+              {Array.from(new Set(storageInventory.data.items.map((item) => item.category))).map((category) => {
+                const items = storageInventory.data!.items.filter((item) => item.category === category);
+                const categoryBytes = items.reduce((sum, item) => sum + item.size, 0);
+                return <div key={category} className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="font-semibold">{category}</h3>
+                    <span className="text-xs text-ink-muted">{formatBytes(categoryBytes)} · {toArabicDigits(items.length)} عنصر</span>
                   </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-        <Button variant="outline" onClick={() => void audioDownloads.refetch()} disabled={audioDownloads.isFetching}>
-          {audioDownloads.isFetching ? "جارٍ التحديث…" : "تحديث قائمة التلاوات"}
-        </Button>
-      </section>
-      <section className={card}>
+                  {items.map((item) => <div key={item.store + ":" + item.key} className="flex items-center justify-between gap-3 rounded-xl border border-line bg-navy-800 p-3" data-testid="local-storage-item">
+                    <div className="min-w-0 space-y-1">
+                      <p className="truncate text-sm font-semibold">{item.label}</p>
+                      {item.detail && <p className="truncate text-xs text-ink-soft">{item.detail}</p>}
+                      <p className="text-xs text-ink-muted">{formatBytes(item.size)}</p>
+                    </div>
+                    <Button variant="ghost" size="icon" aria-label={`حذف ${item.label}`} onClick={() => void handleDeleteStorageItem(item)} data-testid="local-storage-delete-item">
+                      <Trash2 className="size-4 text-danger" />
+                    </Button>
+                  </div>)}
+                </div>;
+              })}
+            </div>
+          )}
+        </>}
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => void refreshStorage()} disabled={storageInventory.isFetching || usage.isFetching}>
+            <RefreshCw className="me-2 size-4" /> تحديث قائمة البيانات
+          </Button>
+          <Button variant="destructive" onClick={() => void handleClearAllStorage()} disabled={!storageInventory.data?.items.length} data-testid="settings-clear-data">
+            <Trash2 className="me-2 size-4" /> حذف جميع البيانات المحفوظة
+          </Button>
+        </div>
+        <p className="text-xs text-ink-muted">يمكنك حذف سورة أو تلاوة أو قالب أو مشروع بشكل مستقل. حذف الصوت لا يحذف نص السورة، وحذف عنصر واحد لا يؤثر على بقية البيانات. حذف الكل يمسح جميع البيانات المخزنة داخل التطبيق على هذا الجهاز.</p>
+      </section><section className={card}>
         <h2 className="flex items-center gap-2 font-semibold"><ShieldCheck className="size-4 text-gold" /> سلامة بيانات القرآن</h2>
         <p className="text-sm text-ink-soft">فحص اكتمال النص والترجمة وتسلسل الآيات في السور المحفوظة داخل التطبيق، دون الحاجة إلى الإنترنت.</p>
         <Button variant="outline" onClick={() => void integrity.refetch()} disabled={integrity.isFetching} data-testid="settings-integrity-run">{integrity.isFetching ? "جارٍ الفحص…" : "تشغيل الفحص"}</Button>
