@@ -8,6 +8,7 @@ import StudioHome from "@/pages/StudioHome";
 import StudioEditor from "@/pages/StudioEditor";
 import LibraryPage from "@/pages/Library";
 import SettingsPage from "@/pages/Settings";
+import LocalStoragePage from "@/pages/LocalStorage";
 
 function NotFound() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="/studio/edit" element={<StudioEditor />} />
         <Route path="/library" element={<LibraryPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/storage" element={<LocalStoragePage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
