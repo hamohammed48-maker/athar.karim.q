@@ -26,7 +26,7 @@ export function QuranAudioBar() {
   const playing = s.status === "playing" || busy;
 
   return (
-    <div className="fixed inset-x-0 bottom-16 z-40 border-t border-line bg-navy-900/95 backdrop-blur-xl md:bottom-0" data-testid="quran-audio-bar" role="region" aria-label="مشغل التلاوة">
+    <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 border-t border-line bg-navy-900/95 backdrop-blur-xl md:bottom-0" data-testid="quran-audio-bar" role="region" aria-label="مشغل التلاوة">
       <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-3">
         <div className="flex items-center justify-between gap-3 text-sm">
           <div className="min-w-0">

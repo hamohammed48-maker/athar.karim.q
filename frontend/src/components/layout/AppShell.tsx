@@ -70,7 +70,7 @@ export default function AppShell() {
         </div>
       </header>
 
-      <main id="main" className={cn("pb-28 md:pb-12", !inStudio && "pb-40 md:pb-28")}>
+      <main id="main" className={cn("pb-28 md:pb-12", !inStudio && "pb-72 md:pb-28")}>
         <Outlet />
       </main>
 

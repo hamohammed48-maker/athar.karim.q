@@ -2,7 +2,7 @@ import { Capacitor, registerPlugin } from "@capacitor/core";
 
 const OWNER = "hamohammed48-maker";
 const REPOSITORY = "athar.karim.q";
-export const APP_VERSION = "1.0.3";
+export const APP_VERSION = "1.0.4";
 
 type ReleaseAsset = { name: string; size: number; browser_download_url: string };
 type GithubRelease = {
