@@ -26,6 +26,12 @@ async function offlineGet<T>(path: string): Promise<T | undefined> {
 }
 
 async function request<T>(method: string, path: string, body?: JsonBody): Promise<T> {
+  // Downloaded Quran chapters must be served from this device before any network request.
+  if (method === "GET") {
+    const local = await offlineGet<T>(path);
+    if (local !== undefined) return local;
+  }
+
   let res: Response;
   try {
     res = await fetch(API_BASE_URL + path, {

@@ -1,9 +1,10 @@
-import type { Chapter, ChapterDetail, Topic, Verse } from "@/types/quran";
+import type { Chapter, ChapterDetail, Reciter, Topic, Verse } from "@/types/quran";
 import { idbGet, idbGetAll, idbPut } from "@/lib/persistence/idb";
 
 type StoredChapter = { id: string; chapterId: number; data: ChapterDetail; downloadedAt: string };
 type StoredChapterIndex = { id: "chapters:index"; chapters: Chapter[] };
 type StoredTopics = { id: "topics:index"; topics: Topic[] };
+type StoredReciters = { id: "reciters:index"; reciters: Reciter[] };
 const keyFor = (chapterId: number) => `chapter:${chapterId}`;
 
 export async function saveOfflineChapter(chapterId: number, data: ChapterDetail): Promise<void> {
@@ -53,6 +54,27 @@ export async function saveOfflineTopics(topics: Topic[]): Promise<void> {
 
 export async function loadOfflineTopics(): Promise<Topic[]> {
   return (await idbGet<StoredTopics>("offline-content", "topics:index"))?.topics ?? [];
+}
+
+export async function saveOfflineReciters(reciters: Reciter[]): Promise<void> {
+  await idbPut<StoredReciters>("offline-content", { id: "reciters:index", reciters });
+}
+
+export async function loadOfflineReciters(): Promise<Reciter[]> {
+  const stored = (await idbGet<StoredReciters>("offline-content", "reciters:index"))?.reciters;
+  if (stored?.length) return stored;
+  // Older versions saved audio files but did not persist the reciter catalogue.
+  // Reconstruct only reciters represented by downloaded audio; no API call is needed.
+  const media = await idbGetAll<{ kind?: string; reciterId?: number; reciterName?: string }>("media");
+  const downloaded = media.filter((item) => item.kind === "quran-audio"
+    && Number.isInteger(item.reciterId) && !!item.reciterName?.trim());
+  const unique = new Map<number, Reciter>();
+  for (const item of downloaded) {
+    const id = item.reciterId!;
+    const name = item.reciterName!.trim();
+    if (!unique.has(id)) unique.set(id, { id, name, name_en: name, style: "" });
+  }
+  return [...unique.values()];
 }
 
 export async function getOfflineVersesByKeys(keys: string[]): Promise<Verse[]> {

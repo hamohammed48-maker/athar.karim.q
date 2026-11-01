@@ -1,9 +1,11 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
 import {
-  getOfflineVersesByKeys, getRandomDownloadedVerse, loadOfflineChapterIndex, loadOfflineTopics,
-  saveOfflineChapterIndex, saveOfflineTopics, searchDownloadedVerses,
+  getOfflineVersesByKeys, getRandomDownloadedVerse, loadOfflineChapter, loadOfflineChapterIndex,
+  loadOfflineReciters, loadOfflineTopics, saveOfflineChapterIndex, saveOfflineReciters,
+  saveOfflineTopics, searchDownloadedVerses,
 } from "@/lib/offlineChapters";
+import { getDownloadedChapterAudio } from "@/lib/audio/offlineAudio";
 import type { Chapter, ChapterAudio, ChapterDetail, Reciter, SearchResponse, Topic, TopicDetail, Verse } from "@/types/quran";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -12,15 +14,12 @@ export const useChapters = () =>
   useQuery({
     queryKey: ["chapters"],
     queryFn: async () => {
-      try {
-        const chapters = await apiGet<Chapter[]>("/quran/chapters");
-        await saveOfflineChapterIndex(chapters).catch(() => undefined);
-        return chapters;
-      } catch (error) {
-        const local = await loadOfflineChapterIndex();
-        if (local.length) return local;
-        throw error;
-      }
+      // Local-first: a saved index is authoritative for this launch; do not contact the API.
+      const local = await loadOfflineChapterIndex();
+      if (local.length) return local;
+      const chapters = await apiGet<Chapter[]>("/quran/chapters");
+      await saveOfflineChapterIndex(chapters).catch(() => undefined);
+      return chapters;
     },
     staleTime: DAY,
   });
@@ -28,7 +27,13 @@ export const useChapters = () =>
 export const useChapter = (n: number | null) =>
   useQuery({
     queryKey: ["chapter", n],
-    queryFn: () => apiGet<ChapterDetail>(`/offline/chapters/${n}`),
+    queryFn: async () => {
+      // Read the downloaded chapter directly from IndexedDB before considering the API.
+      const local = await loadOfflineChapter(n!);
+      if (local && local.chapter.id === n && Array.isArray(local.verses)
+        && local.verses.length === local.chapter.verses_count) return local;
+      return apiGet<ChapterDetail>(`/offline/chapters/${n}`);
+    },
     enabled: !!n,
     staleTime: DAY,
   });
@@ -102,14 +107,29 @@ export const useTopic = (id: string | null) =>
   });
 
 export const useReciters = () =>
-  useQuery({ queryKey: ["reciters"], queryFn: () => apiGet<Reciter[]>("/quran/reciters"), staleTime: DAY });
+  useQuery({
+    queryKey: ["reciters"],
+    queryFn: async () => {
+      const local = await loadOfflineReciters();
+      if (local.length) return local;
+      const reciters = await apiGet<Reciter[]>("/quran/reciters");
+      await saveOfflineReciters(reciters).catch(() => undefined);
+      return reciters;
+    },
+    staleTime: DAY,
+  });
 
 export const fetchChapterAudio = (reciterId: number, chapter: number) =>
   apiGet<ChapterAudio>(`/quran/audio/${reciterId}/${chapter}`);
 
 export const audioQuery = (reciterId: number, chapter: number) => ({
   queryKey: ["audio", reciterId, chapter],
-  queryFn: () => fetchChapterAudio(reciterId, chapter),
+  queryFn: async () => {
+    // A downloaded audio blob and its verse timings are sufficient for offline playback.
+    const local = await getDownloadedChapterAudio(reciterId, chapter);
+    if (local) return local;
+    return fetchChapterAudio(reciterId, chapter);
+  },
   staleTime: DAY,
   retry: 1,
 });

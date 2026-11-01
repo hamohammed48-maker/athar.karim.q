@@ -1,5 +1,5 @@
 import { idbDelete, idbGet, idbGetAll, idbPut } from "@/lib/persistence/idb";
-import { fetchChapterAudio } from "@/lib/quran/hooks";
+import { apiGet } from "@/lib/api";
 import type { ChapterAudio, Reciter } from "@/types/quran";
 
 const PREFIX = "quran-audio:";
@@ -23,7 +23,7 @@ export async function downloadChapterAudio(
   reciter: Reciter, chapterId: number, chapterName: string,
   onProgress?: (value: number) => void,
 ): Promise<DownloadedAudio> {
-  const audio = await fetchChapterAudio(reciter.id, chapterId);
+  const audio = await apiGet<ChapterAudio>(`/quran/audio/${reciter.id}/${chapterId}`);
   const response = await fetch(audio.audio_url);
   if (!response.ok) throw new Error("تعذّر تنزيل الملف الصوتي من مصدر التلاوة.");
   const blob = await response.blob();
