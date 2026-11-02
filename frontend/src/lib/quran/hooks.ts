@@ -65,15 +65,14 @@ export const useTopics = () =>
   useQuery({
     queryKey: ["topics"],
     queryFn: async () => {
-      try {
-        const topics = await apiGet<Topic[]>("/quran/topics");
-        await saveOfflineTopics(topics).catch(() => undefined);
-        return topics;
-      } catch (error) {
-        const local = await loadOfflineTopics();
-        if (local.length) return local;
-        throw error;
-      }
+      // Local-first: a downloaded topic index must render without waiting for the API.
+      const local = await loadOfflineTopics();
+      if (local.length) return local;
+
+      // The API is only a first-install / missing-local-data fallback.
+      const topics = await apiGet<Topic[]>("/quran/topics");
+      await saveOfflineTopics(topics).catch(() => undefined);
+      return topics;
     },
     staleTime: DAY,
   });
@@ -93,13 +92,26 @@ export const useTopic = (id: string | null) =>
       }
       const topic = topics.find((item) => item.id === id);
       if (!topic) throw new Error("الموضوع غير موجود.");
+
+      // Reuse downloaded verses and request only the missing verse keys.
       const localVerses = await getOfflineVersesByKeys(topic.verse_keys);
       if (localVerses.length === topic.verse_keys.length) return { ...topic, verses: localVerses };
+
+      const localKeys = new Set(localVerses.map((verse) => verse.key));
+      const missingKeys = topic.verse_keys.filter((key) => !localKeys.has(key));
       try {
-        return await apiGet<TopicDetail>(`/quran/topics/${id}`);
+        const missingVerses = await apiGet<Verse[]>(
+          `/quran/verses?keys=${encodeURIComponent(missingKeys.join(","))}`,
+        );
+        const byKey = new Map([...localVerses, ...missingVerses].map((verse) => [verse.key, verse]));
+        const verses = topic.verse_keys.flatMap((key) => {
+          const verse = byKey.get(key);
+          return verse ? [verse] : [];
+        });
+        return { ...topic, verses };
       } catch {
         if (localVerses.length) return { ...topic, verses: localVerses };
-        throw new Error("آيات هذا الموضوع غير محفوظة. نزّل السور التي تحتويها عند توفر الإنترنت.");
+        throw new Error("آيات هذا الموضوع غير محفوظة. اتصل بالإنترنت لتحميل الآيات الناقصة.");
       }
     },
     enabled: !!id,
