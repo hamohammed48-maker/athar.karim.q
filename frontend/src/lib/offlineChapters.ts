@@ -4,6 +4,7 @@ import { idbGet, idbGetAll, idbPut } from "@/lib/persistence/idb";
 type StoredChapter = { id: string; chapterId: number; data: ChapterDetail; downloadedAt: string };
 type StoredChapterIndex = { id: "chapters:index"; chapters: Chapter[] };
 type StoredTopics = { id: "topics:index"; topics: Topic[] };
+type StoredTopicDetail = { id: string; topicId: string; verses: Verse[]; name: string; description: string; verse_keys: string[]; complete: boolean; note: string };
 type StoredReciters = { id: "reciters:index"; reciters: Reciter[] };
 const keyFor = (chapterId: number) => `chapter:${chapterId}`;
 
@@ -56,6 +57,35 @@ export async function loadOfflineTopics(): Promise<Topic[]> {
   return (await idbGet<StoredTopics>("offline-content", "topics:index"))?.topics ?? [];
 }
 
+const topicDetailKey = (topicId: string) => `topic:${topicId}`;
+
+export async function saveOfflineTopicDetail(detail: import("@/types/quran").TopicDetail): Promise<void> {
+  await idbPut<StoredTopicDetail>("offline-content", {
+    id: topicDetailKey(detail.id),
+    topicId: detail.id,
+    name: detail.name,
+    description: detail.description,
+    verse_keys: detail.verse_keys,
+    complete: detail.complete,
+    note: detail.note,
+    verses: detail.verses,
+  });
+}
+
+export async function loadOfflineTopicDetail(topicId: string): Promise<import("@/types/quran").TopicDetail | undefined> {
+  const stored = await idbGet<StoredTopicDetail>("offline-content", topicDetailKey(topicId));
+  if (!stored) return undefined;
+  return {
+    id: stored.topicId,
+    name: stored.name,
+    description: stored.description,
+    verse_keys: stored.verse_keys,
+    complete: stored.complete,
+    note: stored.note,
+    verses: stored.verses,
+  };
+}
+
 export async function saveOfflineReciters(reciters: Reciter[]): Promise<void> {
   await idbPut<StoredReciters>("offline-content", { id: "reciters:index", reciters });
 }
@@ -83,6 +113,12 @@ export async function getOfflineVersesByKeys(keys: string[]): Promise<Verse[]> {
   const byKey = new Map<string, Verse>();
   for (const chapter of await getDownloadedChapters()) {
     for (const verse of chapter.verses) if (wanted.has(verse.key)) byKey.set(verse.key, verse);
+  }
+  // Topic details fetched previously are also durable offline Quran content.
+  const topicRows = await idbGetAll<StoredTopicDetail>("offline-content");
+  for (const topic of topicRows) {
+    if (!topic.id?.startsWith("topic:") || !Array.isArray(topic.verses)) continue;
+    for (const verse of topic.verses) if (wanted.has(verse.key)) byKey.set(verse.key, verse);
   }
   return keys.flatMap((key) => byKey.has(key) ? [byKey.get(key)!] : []);
 }

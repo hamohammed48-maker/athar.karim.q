@@ -2,8 +2,8 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
 import {
   getOfflineVersesByKeys, getRandomDownloadedVerse, loadOfflineChapter, loadOfflineChapterIndex,
-  loadOfflineReciters, loadOfflineTopics, saveOfflineChapterIndex, saveOfflineReciters,
-  saveOfflineTopics, searchDownloadedVerses,
+  loadOfflineReciters, loadOfflineTopics, loadOfflineTopicDetail, saveOfflineChapterIndex, saveOfflineReciters,
+  saveOfflineTopicDetail, saveOfflineTopics, searchDownloadedVerses,
 } from "@/lib/offlineChapters";
 import { getDownloadedChapterAudio } from "@/lib/audio/offlineAudio";
 import type { Chapter, ChapterAudio, ChapterDetail, Reciter, SearchResponse, Topic, TopicDetail, Verse } from "@/types/quran";
@@ -44,7 +44,15 @@ export const useVersesByKeys = (keys: string[]) =>
     queryFn: async () => {
       const local = await getOfflineVersesByKeys(keys);
       if (local.length === keys.length) return local;
-      return apiGet<Verse[]>(`/quran/verses?keys=${encodeURIComponent(keys.join(","))}`);
+
+      const localKeys = new Set(local.map((verse) => verse.key));
+      const missingKeys = keys.filter((key) => !localKeys.has(key));
+      const missing = await apiGet<Verse[]>(`/quran/verses?keys=${encodeURIComponent(missingKeys.join(","))}`);
+      const byKey = new Map([...local, ...missing].map((verse) => [verse.key, verse]));
+      return keys.flatMap((key) => {
+        const verse = byKey.get(key);
+        return verse ? [verse] : [];
+      });
     },
     enabled: keys.length > 0,
     staleTime: DAY,
@@ -93,9 +101,19 @@ export const useTopic = (id: string | null) =>
       const topic = topics.find((item) => item.id === id);
       if (!topic) throw new Error("الموضوع غير موجود.");
 
-      // Reuse downloaded verses and request only the missing verse keys.
+      // A previously opened topic may already have a complete durable local copy.
+      const savedDetail = await loadOfflineTopicDetail(id!);
+      if (savedDetail && topic.verse_keys.every((key) => savedDetail.verses.some((verse) => verse.key === key))) {
+        return { ...topic, ...savedDetail };
+      }
+
+      // Reuse downloaded chapter/topic verses and request only missing keys.
       const localVerses = await getOfflineVersesByKeys(topic.verse_keys);
-      if (localVerses.length === topic.verse_keys.length) return { ...topic, verses: localVerses };
+      if (localVerses.length === topic.verse_keys.length) {
+        const detail = { ...topic, verses: localVerses };
+        await saveOfflineTopicDetail(detail).catch(() => undefined);
+        return detail;
+      }
 
       const localKeys = new Set(localVerses.map((verse) => verse.key));
       const missingKeys = topic.verse_keys.filter((key) => !localKeys.has(key));
@@ -108,7 +126,11 @@ export const useTopic = (id: string | null) =>
           const verse = byKey.get(key);
           return verse ? [verse] : [];
         });
-        return { ...topic, verses };
+        const detail = { ...topic, verses };
+        if (verses.length === topic.verse_keys.length) {
+          await saveOfflineTopicDetail(detail).catch(() => undefined);
+        }
+        return detail;
       } catch {
         if (localVerses.length) return { ...topic, verses: localVerses };
         throw new Error("آيات هذا الموضوع غير محفوظة. اتصل بالإنترنت لتحميل الآيات الناقصة.");
