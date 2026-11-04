@@ -73,14 +73,19 @@ export const useTopics = () =>
   useQuery({
     queryKey: ["topics"],
     queryFn: async () => {
-      // Local-first: a downloaded topic index must render without waiting for the API.
+      // Local-first for immediate offline availability, then refresh from the API.
       const local = await loadOfflineTopics();
+      try {
+        const latest = await apiGet<Topic[]>("/quran/topics");
+        if (latest.length) {
+          await saveOfflineTopics(latest).catch(() => undefined);
+          return latest;
+        }
+      } catch {
+        // Keep the previously downloaded index when the device is offline.
+      }
       if (local.length) return local;
-
-      // The API is only a first-install / missing-local-data fallback.
-      const topics = await apiGet<Topic[]>("/quran/topics");
-      await saveOfflineTopics(topics).catch(() => undefined);
-      return topics;
+      throw new Error("تعذّر تحميل فهرس الموضوعات. اتصل بالإنترنت مرة واحدة لتحميله.");
     },
     staleTime: DAY,
   });
@@ -89,12 +94,16 @@ export const useTopic = (id: string | null) =>
   useQuery({
     queryKey: ["topic", id],
     queryFn: async (): Promise<TopicDetail> => {
+      // Refresh the topic index so newly added topics and verse references replace stale local data.
       let topics = await loadOfflineTopics();
-      if (!topics.length) {
-        try {
-          topics = await apiGet<Topic[]>("/quran/topics");
-          await saveOfflineTopics(topics).catch(() => undefined);
-        } catch {
+      try {
+        const latest = await apiGet<Topic[]>("/quran/topics");
+        if (latest.length) {
+          topics = latest;
+          await saveOfflineTopics(latest).catch(() => undefined);
+        }
+      } catch {
+        if (!topics.length) {
           throw new Error("قائمة المواضيع غير محفوظة على الجهاز. اتصل بالإنترنت مرة واحدة لتحميلها.");
         }
       }
