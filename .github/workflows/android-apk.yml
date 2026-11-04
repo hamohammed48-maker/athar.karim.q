@@ -147,7 +147,7 @@ jobs:
 
       - name: Publish Android release for in-app updates
         # Publish the approved v1.0.4 release (explicit commit marker).
-        if: (github.event_name == 'workflow_dispatch' && inputs.publish_release) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-release-v1.0.5]'))
+        if: (github.event_name == 'workflow_dispatch' && inputs.publish_release) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-release-v1.0.6]'))
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
